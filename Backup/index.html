@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Portfolio Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+    <header>
+        <h1>Dividend Portfolio Tracker</h1>
+        <div class="api-key-section">
+            <label for="api-key-input">AlphaVantage API Key:</label>
+            <input type="text" id="api-key-input" placeholder="Enter API Key (e.g., demo)">
+            <button id="setApiKeyButton" aria-label="Set API Key">Set API Key</button>
+        </div>
+        <button id="save-all-data-btn">Save All Local Storage Data</button>
+        <button id="load-all-data-btn">Load All Local Storage Data</button>
+        <input type="file" id="file-input" accept=".json" style="display: none;">
+    </header>
+
+    <main>
+        <!-- Portfolio Section -->
+        <section id="left-section" class="section-left">
+            <div class="module-styling">
+                <h2>My Portfolio</h2>
+                <div class="portfolio-btns">
+                    <button id="clear-portfolio-btn">Clear Portfolio Data</button>
+                    <button onclick="savePortfolioToFile()">Save Portfolio Data</button>
+                    <button onclick="loadPortfolioFromFile()">Load Portfolio Data</button>
+                    <input type="file" id="file-input" accept=".json" style="display: none;">
+                </div>
+                <div id="total-dividends">
+                    <strong>Total Dividend Payment:</strong> $<span id="total-payment">0.00</span>
+                </div>
+                <table id="portfolio-table">
+                    <thead id="portfolio-heading">
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Amount Owned</th>
+                            <th>Dividend</th>
+                            <th>Dividend Payment</th>
+                            <th>Payment Date</th>
+                            <th>Refetch Data</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolio-data"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Controls and Chart Section -->
+        <section id="right-section" class="section-right">
+            <!-- Add Stock Form -->
+            <div id="stock-section" class="module-styling">
+                <h2>Add Stock</h2>
+                <button id="toggle-api-manual-btn" class="api-toggle-btn">Switch to Manual Entry</button>
+                <form id="stock-form">
+                    <fieldset>
+                        <label for="stock-name">Ticker:</label>
+                        <input type="text" id="stock-name" name="stock-name" required placeholder="e.g., AAPL">
+                        
+                        <label for="stock-amount">Amount Owned:</label>
+                        <input type="number" id="stock-amount" step="0.0001" required placeholder="0.0000">
+                        
+                        <label for="stock-dividend">Dividend:</label>
+                        <input type="number" id="stock-dividend" name="stock-dividend" step="0.0001" required disabled placeholder="Fetching dividend... Enter Ticker.">
+                        
+                        <label for="stock-payment-date">Payment Date:</label>
+                        <input type="date" id="stock-payment-date" name="stock-payment-date">
+                        
+                        <button type="submit">Add Stock</button>
+                    </fieldset>
+                </form>
+            </div>
+
+            <!-- Stock Details Section -->
+            <div id="stock-details-section" class="module-styling">
+                <h2>Stock Dividend Details</h2>
+                <div class="stock-btns">
+                    <button onclick="clearStockData()">Clear Stock Data</button>
+                    <button id="generate-data-btn">Populate Stock Data</button>
+                    <button onclick="saveStockDataToFile()">Save Stock Data</button>
+                    <button onclick="loadStockDataFromFile()">Load Stock Data</button>
+                </div>
+                <label for="stock-ticker-input">Enter Stock Ticker:</label>
+                <input type="text" id="stock-ticker-input" placeholder="e.g., IBM">
+                <button onclick="fetchStockDetails()">Get Dividend Details</button>
+
+                <div class="stock-details-grid">
+                    <div class="ticker"></div> <!-- Blank top-left corner cell -->
+                    <div class="stock-label-center">Current Details</div>
+                    <div class="stock-label-center">Previous Details</div>
+                    
+                    <div class="stock-label">Ex-Dividend Date</div>
+                    <div id="recentExDividendDate" class="stock-data"></div>
+                    <div id="previousExDividendDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Declaration Date</div>
+                    <div id="recentDeclarationDate" class="stock-data"></div>
+                    <div id="previousDeclarationDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Record Date</div>
+                    <div id="recentRecordDate" class="stock-data"></div>
+                    <div id="previousRecordDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Payment Date</div>
+                    <div id="recentPaymentDate" class="stock-data"></div>
+                    <div id="previousPaymentDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Dividend Amount</div>
+                    <div id="recentDividendAmount" class="stock-data"></div>
+                    <div id="previousDividendAmount" class="stock-data"></div>
+                </div>
+            </div>
+
+            <!-- Calendar Section -->
+            <div id="calendar-section" class="module-styling">
+                <h2>Calendar</h2>
+                <div id="calendar-header">
+                    <span id="month-year" class="subheading"></span>
+                    <span id="total-month-dividends" class="subheading"></span>
+                </div>
+                <div id="calendar"></div>
+            </div>
+
+            <!-- Chart Section -->
+            <div id="chart-section" class="module-styling">
+                <h2>Dividend Growth</h2>
+                <div class="chart-btns">
+                    <button id="set-dividend-btn">Set Dividend Point</button>
+                    <button id="clear-chart-btn">Clear Chart Data</button>
+                    <button id="save-chart-btn">Save Chart Data</button>
+                    <button id="load-chart-btn">Load Chart Data</button>
+                </div>
+                <canvas id="dividend-chart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
