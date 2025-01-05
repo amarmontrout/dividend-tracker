@@ -320,6 +320,7 @@ canvas {
   overflow: hidden; /* Prevent content from spilling outside */
 }
 
+
 @media (max-width: 768px) {
 
   main {
