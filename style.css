@@ -5,6 +5,7 @@ body {
   margin: 0;
   padding: 0;
   background-color: #003600;
+  box-sizing: border-box;
   color: #000000;
 }
 
@@ -317,4 +318,16 @@ canvas {
   padding: 5px;
   border: 1px solid #ccc;
   overflow: hidden; /* Prevent content from spilling outside */
+}
+
+@media (max-width: 768px) {
+
+  main {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 1rem auto;
+    width: 95%;
+  }
+
 }
