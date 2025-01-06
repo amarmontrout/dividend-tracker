@@ -1146,12 +1146,14 @@ function generateCalendar() {
     const dayElement = document.createElement('div');
     dayElement.textContent = day;
     calendarContainer.appendChild(dayElement);
+    dayElement.classList.add('day-header');
   });
 
   // Create blank cells for days before the 1st of the month
   for (let i = 0; i < firstDayWeekday; i++) {
     const emptyCell = document.createElement('div');
     calendarContainer.appendChild(emptyCell);
+    emptyCell.classList.add('empty-day');
   }
 
   // Calculate dividends for the current month

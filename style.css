@@ -284,7 +284,7 @@ canvas {
 }
 
 #calendar div {
-  padding: 10px;
+  padding: 5px;
   text-align: center;
   background-color: lightgrey;
   font-weight: bold;
@@ -298,8 +298,8 @@ canvas {
 }
 
 #calendar .dividend-total {
-  position: absolute;
-  bottom: 5px;
+  position: relative;
+  top: 10px;
   font-size: 1rem;
   background-color: #C5A800;
   padding: 2px 5px;
@@ -316,12 +316,26 @@ canvas {
   vertical-align: top;
   box-sizing: border-box;
   padding: 5px;
-  border: 1px solid #ccc;
   overflow: hidden; /* Prevent content from spilling outside */
 }
 
-
+/* SMALLER SCREENS */
 @media (max-width: 768px) {
+
+  body {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    max-width: 1005vw;
+    margin: 0;
+    padding: 0;
+    background-color: #003600;
+    box-sizing: border-box;
+    color: #000000;
+  }
+
+  #portfolio-table  button {
+    font-size: 10px;
+  }
 
   main {
     display: flex;
@@ -329,6 +343,115 @@ canvas {
     justify-content: space-between;
     margin: 1rem auto;
     width: 95%;
+  }
+
+  .portfolio-btns button {
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  table th,
+  table td {
+    font-size: 13px;
+    border: 1px solid #003600;
+    padding: 5px 2px;
+    text-align: center;
+  }
+  
+  #calendar div {
+    text-align: center;
+    background-color: lightgrey;
+    font-weight: bold;
+    position: relative; /* For absolute positioning of dividend totals */
+    border-radius: 5px;
+  }
+
+  #calendar .day-header {
+    font-size: 15px;
+    width: 2.5rem;
+    padding: 5px;
+  }
+
+  #calendar .emptyCell {
+    width: 10px;
+    height: 22px;
+  }
+
+  #calendar .dividend-total {
+    position: relative;
+    height: 1rem;
+    width: 2.5rem;
+    top: 5px;
+    font-size: .75rem;
+    text-align: center;
+    background-color: #C5A800;
+    padding: 2px 1px;
+    border-radius: 5px;
+    color: #000;
+  }
+
+  .day {
+    position: relative;
+    display: inline-block;
+    min-width: 20px; /* Set a minimum width for the day div */
+    height: 50px; /* Adjust as needed */
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    vertical-align: top;
+    box-sizing: border-box;
+    overflow: hidden; /* Prevent content from spilling outside */
+  }
+
+  .subheading {
+    font-weight: bold;
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  .module-styling {
+    padding: .5rem;
+    border: 2px solid #003600;
+    border-radius: 10px;
+    background-color: #F0F0F0;
+  }
+
+  .stock-label {
+    font-weight: bold;
+    font-size: .85rem;
+    padding: 5px;
+    text-align: right;
+    background-color: #003600;
+    color: #F0F0F0;
+  }
+
+  .stock-label-center {
+    font-weight: bold;
+    font-size: .85rem;
+    padding: 5px;
+    text-align: center;
+    color: #F0F0F0;
+    background-color: #003600;
+  }
+
+  .chart-btns button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  .stock-btns button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+  .portfolio-btns button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  #api-key-input {
+    margin-bottom: 10px;
+    width: 122px;
   }
 
 }
