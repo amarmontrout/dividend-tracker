@@ -25,41 +25,6 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-function zFold() {
-  const currentWidth = window.innerWidth;
-  const verticalClosed = 344;
-  const landscapeClosed = 882;
-  const verticalOpen = 690;
-  const landscapeOpen = 829;
-
-  // Select the body element
-  const body = document.querySelector("body");
-  const header = document.querySelector("header");
-  const main = document.querySelector("main");
-  
-  if (currentWidth === verticalClosed || currentWidth === landscapeClosed) {
-      body.setAttribute("id", "zFold");
-      body.removeChild(header);
-      body.removeChild(main);
-
-      const text = document.createElement("h1");
-      text.textContent = "Get and iPhone B===D";
-      body.appendChild(text);
-  }
-
-  if (currentWidth === verticalOpen || currentWidth === landscapeOpen) {
-    body.setAttribute("id", "zFold");
-    body.removeChild(header);
-    body.removeChild(main);
-
-    const text = document.createElement("h1");
-    text.textContent = "Close your phone and get and iPhone B===D";
-    body.appendChild(text);
-  }
-}
-
-zFold();
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE AND LOAD BUTTONS
@@ -1007,6 +972,10 @@ function generateCalendar() {
 function highlightOldStock() {
   // Get the current date
   const today = new Date();
+
+  // Get the month and year for one months ago
+  const oneMonthAgo = new Date(today);
+  oneMonthAgo.setMonth(today.getMonth() - 1);
   
   // Get the month and year for two months ago
   const twoMonthsAgo = new Date(today);
@@ -1019,12 +988,22 @@ function highlightOldStock() {
   // Extract the month values (0-based month: January = 0, December = 11)
   const twoMonthsAgoMonth = twoMonthsAgo.getMonth();
   const threeMonthsAgoMonth = threeMonthsAgo.getMonth();
+  const oneMonthAgoMonth = oneMonthAgo.getMonth();
 
   // Loop through the portfolio and check if the payment date is two or three months ago
   portfolio.forEach((stock, index) => {
     // Parse the payment date (Assuming the format is YYYY-MM-DD)
     const [year, month, day] = stock.stockPaymentDate.split('-');
     const stockMonth = parseInt(month) - 1; // Month is 1-based in the stock data, so subtract 1
+
+    // Compare if the payment date is exactly one months ago
+    if (stockMonth === oneMonthAgoMonth) {
+      // Find the corresponding row and add a CSS class for highlighting
+      const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
+      if (stockRow) {
+        stockRow.classList.add('highlight'); // Add the highlight class
+      }
+    }
 
     // Compare if the payment date is exactly two months ago
     if (stockMonth === twoMonthsAgoMonth) {

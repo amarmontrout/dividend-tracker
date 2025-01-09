@@ -16,14 +16,36 @@
             <input type="text" id="api-key-input" placeholder="e.g., demo">
             <button id="setApiKeyButton" aria-label="Set API Key">Set API Key</button>
         </div>
-        <button id="save-all-data-btn">Save All Local Storage Data</button>
-        <button id="load-all-data-btn">Load All Local Storage Data</button>
+        <button id="save-all-data-btn">Save Data</button>
+        <button id="load-all-data-btn">Load Data</button>
         <input type="file" id="file-input" accept=".json" style="display: none;">
     </header>
 
     <main>
         <!-- Portfolio Section -->
         <section id="left-section" class="section-left">
+            <!-- Add Stock Form -->
+            <div id="stock-section" class="module-styling">
+                <h2>Add Stock</h2>
+                <button id="toggle-api-manual-btn" class="api-toggle-btn">Switch to Manual Entry</button>
+                <form id="stock-form">
+                    <fieldset>
+                        <label for="stock-name">Ticker:</label>
+                        <input type="text" id="stock-name" name="stock-name" required placeholder="e.g., AAPL">
+                        
+                        <label for="stock-amount">Amount Owned:</label>
+                        <input type="number" id="stock-amount" step="0.0001" required placeholder="0.0000">
+                        
+                        <label for="stock-dividend">Dividend:</label>
+                        <input type="number" id="stock-dividend" name="stock-dividend" step="0.0001" required disabled placeholder="Fetching dividend... Enter Ticker.">
+                        
+                        <label for="stock-payment-date">Payment Date:</label>
+                        <input type="date" id="stock-payment-date" name="stock-payment-date" placeholder="Enter Payment Date">
+                        
+                        <button type="submit">Add Stock</button>
+                    </fieldset>
+                </form>
+            </div>
             <div class="module-styling">
                 <h2>My Portfolio</h2>
                 <div class="portfolio-btns">
@@ -52,28 +74,7 @@
 
         <!-- Controls and Chart Section -->
         <section id="right-section" class="section-right">
-            <!-- Add Stock Form -->
-            <div id="stock-section" class="module-styling">
-                <h2>Add Stock</h2>
-                <button id="toggle-api-manual-btn" class="api-toggle-btn">Switch to Manual Entry</button>
-                <form id="stock-form">
-                    <fieldset>
-                        <label for="stock-name">Ticker:</label>
-                        <input type="text" id="stock-name" name="stock-name" required placeholder="e.g., AAPL">
-                        
-                        <label for="stock-amount">Amount Owned:</label>
-                        <input type="number" id="stock-amount" step="0.0001" required placeholder="0.0000">
-                        
-                        <label for="stock-dividend">Dividend:</label>
-                        <input type="number" id="stock-dividend" name="stock-dividend" step="0.0001" required disabled placeholder="Fetching dividend... Enter Ticker.">
-                        
-                        <label for="stock-payment-date">Payment Date:</label>
-                        <input type="date" id="stock-payment-date" name="stock-payment-date">
-                        
-                        <button type="submit">Add Stock</button>
-                    </fieldset>
-                </form>
-            </div>
+            
 
             <!-- Stock Details Section -->
             <div id="stock-details-section" class="module-styling">
