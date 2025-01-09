@@ -4,7 +4,6 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  width: 100vw;
   background-color: #003600;
   box-sizing: border-box;
   color: #000000;
@@ -14,14 +13,14 @@ header {
   background-color: #004d00;
   color: #C5A800;
   padding: 1rem;
-  width: 100vw;
   text-align: center;
 }
 
 main {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-between;
+  margin: 1rem auto;
   width: 75%;
 }
 
@@ -41,7 +40,7 @@ button {
   border: none;
   color: #ffffff;
   cursor: pointer;
-  padding: 5px
+  padding: 5px;
 }
 
 button:hover {
@@ -74,6 +73,7 @@ input:disabled {
 
 .section-left {
   flex: 2;
+  justify-content: center;
   border-radius: 10px;
   flex-direction: column;
   gap: 1rem;
@@ -81,6 +81,8 @@ input:disabled {
 
 .section-right {
   flex: 2;
+  justify-content: center;
+
   border-radius: 10px;
   flex-direction: column;
 }
@@ -117,6 +119,7 @@ input:disabled {
 /* ---------------Portfolio Styling--------------- */
 
 .portfolio-btns {
+  display: flex;
   justify-content: left;  
 }
 
@@ -127,6 +130,7 @@ input:disabled {
 }
 
 table {
+  width: 100%;
   border-spacing: 0px;
   border: 1px solid black;
   overflow: hidden;
@@ -206,6 +210,7 @@ input[type=number] {
 /* ---------------Stock Dividend Details Styling--------------- */
 
 .stock-btns {
+  display: flex;
   margin-bottom: 1rem;
   justify-content: left; 
 }
@@ -222,8 +227,9 @@ input[type=number] {
 
 .stock-details-grid {
   display: grid;
+  overflow: hidden;
   border: 1px solid black;
-  border-radius: 5px;
+  border-radius: 10px;
   margin-top: 10px;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: repeat(6, auto);
@@ -337,7 +343,6 @@ canvas {
 
 #zFold {
   width: 344px;
-  height: 100vh;
   background-color: white;
 }
 
