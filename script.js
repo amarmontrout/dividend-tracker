@@ -25,6 +25,41 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
+function zFold() {
+  const currentWidth = window.innerWidth;
+  const verticalClosed = 344;
+  const landscapeClosed = 882;
+  const verticalOpen = 690;
+  const landscapeOpen = 829;
+
+  // Select the body element
+  const body = document.querySelector("body");
+  const header = document.querySelector("header");
+  const main = document.querySelector("main");
+  
+  if (currentWidth === verticalClosed || currentWidth === landscapeClosed) {
+      body.setAttribute("id", "zFold");
+      body.removeChild(header);
+      body.removeChild(main);
+
+      const text = document.createElement("h1");
+      text.textContent = "Get and iPhone B===D";
+      body.appendChild(text);
+  }
+
+  if (currentWidth === verticalOpen || currentWidth === landscapeOpen) {
+    body.setAttribute("id", "zFold");
+    body.removeChild(header);
+    body.removeChild(main);
+
+    const text = document.createElement("h1");
+    text.textContent = "Close your phone and get and iPhone B===D";
+    body.appendChild(text);
+  }
+}
+
+zFold();
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE AND LOAD BUTTONS
@@ -227,149 +262,10 @@ document.getElementById('clear-chart-btn').addEventListener('click', () => {
   clearChartData(); // Clear the chart data from localStorage
 });
 
-// Save chart data to JSON
-const sChartData = () => {
-  const chartData = {
-    labels: dividendChart.data.labels,
-    data: dividendChart.data.datasets[0].data
-  };
-
-  const jsonData = JSON.stringify(chartData, null, 2); // Convert the data to a formatted JSON string
-
-  const blob = new Blob([jsonData], { type: 'application/json' }); // Create a Blob with JSON data
-  const link = document.createElement('a'); // Create a download link
-  link.href = URL.createObjectURL(blob); // Create a URL for the Blob
-  link.download = 'chartData.json'; // Name of the file to be downloaded
-
-  // Trigger the download
-  link.click();
-  console.log('Chart data saved to file');
-};
-
-// Button to save the current chart data to localStorage
-document.getElementById('save-chart-btn').addEventListener('click', () => {
-  sChartData(); // Save the chart data to localStorage
-});
-
-// Load chart data from a file and store it in localStorage
-const loadChartDataFromFile = () => {
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = '.json'; // Only accept JSON files
-
-  // Trigger file input dialog
-  fileInput.click();
-
-  fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/json') {
-      const reader = new FileReader();
-
-      // Read the file as text
-      reader.onload = (e) => {
-        try {
-          const loadedData = JSON.parse(e.target.result); // Parse the JSON data
-
-          // Save the data to localStorage under 'chartData' key
-          localStorage.setItem('chartData', JSON.stringify(loadedData));
-
-          console.log('Chart data successfully loaded and chart updated.');
-
-          // Optional: You can also update the chart with the loaded data
-          dividendChart.data.labels = loadedData.labels;
-          dividendChart.data.datasets[0].data = loadedData.data;
-          dividendChart.update(); // Update the chart with the loaded data
-
-          alert('Chart data has been loaded and updated on the chart.');
-
-        } catch (error) {
-          console.error('Failed to load chart data from file:', error);
-          alert('Invalid JSON file.');
-        }
-      };
-
-      reader.readAsText(file); // Read the file content
-    } else {
-      alert('Please select a valid JSON file.');
-    }
-  });
-};
-
-// Button to load chart data from a file
-document.getElementById('load-chart-btn').addEventListener('click', () => {
-  loadChartDataFromFile(); // Load chart data from a file
-});
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // STOCK DIVIDEND DETAIL FUNCTIONS
 
-// Save the 'data' from localStorage as a JSON file
-const saveStockDataToFile = () => {
-  // Retrieve the 'data' object from localStorage
-  const data = JSON.parse(localStorage.getItem('data'));
-
-  if (!data) {
-    alert('No stock data found in localStorage.');
-    return;
-  }
-
-  // Convert the 'data' object to a JSON string
-  const jsonData = JSON.stringify(data, null, 2); // The 'null, 2' is for pretty-printing the JSON
-
-  // Create a Blob from the JSON string
-  const blob = new Blob([jsonData], { type: 'application/json' });
-
-  // Create a download link
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'stock_data.json'; // File name for the download
-
-  // Trigger the download
-  link.click();
-  
-  console.log('Stock data saved as stock_data.json');
-};
-
-// Load stock data from a file and store it in localStorage
-const loadStockDataFromFile = () => {
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = '.json'; // Only accept JSON files
-
-  // Trigger file input dialog
-  fileInput.click();
-
-  fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/json') {
-      const reader = new FileReader();
-
-      // Read the file as text
-      reader.onload = (e) => {
-        try {
-          const loadedData = JSON.parse(e.target.result); // Parse the JSON data
-
-          // Save the data to localStorage under 'data' key
-          localStorage.setItem('data', JSON.stringify(loadedData));
-
-          console.log('Stock data successfully loaded into localStorage.');
-
-          // Optional: You can also reload your portfolio or refresh the page
-          alert('Stock data has been loaded into localStorage.');
-
-        } catch (error) {
-          console.error('Failed to load stock data from file:', error);
-          alert('Invalid JSON file.');
-        }
-      };
-
-      reader.readAsText(file); // Read the file content
-    } else {
-      alert('Please select a valid JSON file.');
-    }
-  });
-};
 
 // Function to clear the stock data from localStorage
 const clearStockData = () => {
@@ -445,53 +341,6 @@ const fetchStockDetails = async () => {
   // Clear the input field and show the placeholder
   tickerInput.value = '';
 };
-
-// Generate 'data' array from portfolio and save to localStorage
-const generateDataFromPortfolio = () => {
-  const portfolio = JSON.parse(localStorage.getItem('portfolio'));
-
-  if (!portfolio || !Array.isArray(portfolio)) {
-    alert('No valid portfolio data found in localStorage.');
-    return;
-  }
-
-  // Create or update the 'data' object
-  const data = portfolio.reduce((acc, stock) => {
-    const ticker = stock.stockName;
-    if (!acc[ticker]) {
-      acc[ticker] = {
-        latest: {
-          exDividendDate: 'N/A',
-          declarationDate: 'N/A',
-          recordDate: 'N/A',
-          paymentDate: stock.stockPaymentDate || 'N/A',
-          dividend: parseFloat(stock.stockDividend) || 0.0000,
-        },
-        previous: {
-          exDividendDate: 'N/A',
-          declarationDate: 'N/A',
-          recordDate: 'N/A',
-          paymentDate: 'N/A',
-          dividend: 0.0000,
-        },
-      };
-    } else {
-      acc[ticker].latest.dividend = parseFloat(stock.stockDividend) || 0.0000;
-      acc[ticker].latest.paymentDate = stock.stockPaymentDate || 'N/A';
-    }
-    return acc;
-  }, JSON.parse(localStorage.getItem('data')) || {});
-
-  // Save the updated 'data' object to localStorage
-  localStorage.setItem('data', JSON.stringify(data));
-  console.log('Data array successfully generated and saved to localStorage.');
-
-  alert('Data has been generated from the portfolio.');
-};
-
-// Listener for generating data from portfolio
-document.getElementById('generate-data-btn').addEventListener('click', generateDataFromPortfolio);
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // ADD STOCK FUNCTIONS
@@ -731,60 +580,6 @@ document.getElementById('clear-portfolio-btn').addEventListener('click', () => {
   refreshCalendar();
 });
 
-// Save portfolio to a JSON file
-const savePortfolioToFile = () => {
-  const portfolioJSON = JSON.stringify(portfolio, null, 2); // Convert portfolio array to JSON string
-
-  // Create a Blob from the JSON string
-  const blob = new Blob([portfolioJSON], { type: 'application/json' });
-
-  // Create a link element
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'portfolio.json'; // Name of the file to be downloaded
-
-  // Programmatically click the link to trigger the download
-  link.click();
-};
-
-// Load portfolio from a selected JSON file and save to localStorage
-const loadPortfolioFromFile = () => {
-  const fileInput = document.getElementById('file-input');
-  fileInput.click(); // Trigger the file input dialog
-
-  fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/json') {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        try {
-          const loadedPortfolio = JSON.parse(e.target.result);
-          portfolio = loadedPortfolio; // Update global portfolio array
-
-          // Save the portfolio to localStorage
-          localStorage.setItem('portfolio', JSON.stringify(portfolio));
-          console.log('Portfolio successfully loaded and saved to localStorage.');
-
-          // Update UI
-          totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * parseFloat(stock.stockDividend), 0);
-          renderPortfolio();
-          updateChart();
-
-          alert('Portfolio loaded successfully.');
-        } catch (error) {
-          console.error('Failed to load portfolio from file:', error);
-          alert('Invalid JSON file.');
-        }
-      };
-
-      reader.readAsText(file); // Read the file as text
-    } else {
-      alert('Please select a valid JSON file.');
-    }
-  });
-};
-
 // Render portfolio table
 const renderPortfolio = () => {
   // Sort portfolio by stock name alphabetically
@@ -804,8 +599,8 @@ const renderPortfolio = () => {
       <td contenteditable="true" onblur="updateStock(${index}, 'dividend', this.textContent)">${parseFloat(stock.stockDividend).toFixed(4)}</td> <!-- Display dividend with 4 decimals -->
       <td id="full-dividend-${index}">$${fullDividend}</td> <!-- Display full dividend -->
       <td id="dividend-date" onblur="updateStock(${index}, 'paymentDate', this.textContent)">${formattedDate}</td>
-      <td><button id="refetch-btn-${index}" data-index="${index}"  onclick="refetchDividend(${index})">Refetch</button></td> <!-- Refetch button -->
-      <td><button onclick="removeStock(${index})">Remove</button></td>
+      <td><button id="refetch-btn-${index}" class="portfolio-refetch-btn" data-index="${index}"  onclick="refetchDividend(${index})"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/></svg></button></td> <!-- Refetch button -->
+      <td><button onclick="removeStock(${index})" class="portfolio-rm-btn" ><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/></svg></button></td>
     `;
     portfolioTable.appendChild(row);
   });
@@ -893,7 +688,6 @@ window.removeStock = (index) => {
   // Refresh the calendar to reflect the removed stock's dividend data
   refreshCalendar();
 };
-
 
 // Refetch dividend
 window.refetchDividend = async (index) => {

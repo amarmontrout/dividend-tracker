@@ -13,7 +13,7 @@
         <h1>Dividend Portfolio Tracker</h1>
         <div class="api-key-section">
             <label for="api-key-input">AlphaVantage API Key:</label>
-            <input type="text" id="api-key-input" placeholder="Enter API Key (e.g., demo)">
+            <input type="text" id="api-key-input" placeholder="e.g., demo">
             <button id="setApiKeyButton" aria-label="Set API Key">Set API Key</button>
         </div>
         <button id="save-all-data-btn">Save All Local Storage Data</button>
@@ -28,8 +28,6 @@
                 <h2>My Portfolio</h2>
                 <div class="portfolio-btns">
                     <button id="clear-portfolio-btn">Clear Portfolio Data</button>
-                    <button onclick="savePortfolioToFile()">Save Portfolio Data</button>
-                    <button onclick="loadPortfolioFromFile()">Load Portfolio Data</button>
                     <input type="file" id="file-input" accept=".json" style="display: none;">
                 </div>
                 <div id="total-dividends">
@@ -82,16 +80,13 @@
                 <h2>Stock Dividend Details</h2>
                 <div class="stock-btns">
                     <button onclick="clearStockData()">Clear Stock Data</button>
-                    <button id="generate-data-btn">Populate Stock Data</button>
-                    <button onclick="saveStockDataToFile()">Save Stock Data</button>
-                    <button onclick="loadStockDataFromFile()">Load Stock Data</button>
                 </div>
                 <label for="stock-ticker-input">Enter Stock Ticker:</label>
                 <input type="text" id="stock-ticker-input" placeholder="e.g., IBM">
-                <button onclick="fetchStockDetails()">Get Dividend Details</button>
+                <button onclick="fetchStockDetails()">Get Details</button>
 
                 <div class="stock-details-grid">
-                    <div class="ticker"></div> <!-- Blank top-left corner cell -->
+                    <div class="ticker"></div>
                     <div class="stock-label-center">Current Details</div>
                     <div class="stock-label-center">Previous Details</div>
                     
@@ -133,8 +128,6 @@
                 <div class="chart-btns">
                     <button id="set-dividend-btn">Set Dividend Point</button>
                     <button id="clear-chart-btn">Clear Chart Data</button>
-                    <button id="save-chart-btn">Save Chart Data</button>
-                    <button id="load-chart-btn">Load Chart Data</button>
                 </div>
                 <canvas id="dividend-chart"></canvas>
             </div>

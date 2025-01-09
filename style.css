@@ -4,6 +4,7 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
+  width: 100vw;
   background-color: #003600;
   box-sizing: border-box;
   color: #000000;
@@ -13,14 +14,14 @@ header {
   background-color: #004d00;
   color: #C5A800;
   padding: 1rem;
+  width: 100vw;
   text-align: center;
 }
 
 main {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-  margin: 1rem auto;
+  justify-content: center;
   width: 75%;
 }
 
@@ -40,7 +41,7 @@ button {
   border: none;
   color: #ffffff;
   cursor: pointer;
-  padding: 5px;
+  padding: 5px
 }
 
 button:hover {
@@ -51,10 +52,16 @@ header button {
   border: 1px solid black;
 }
 
+input {
+  border: 1px solid black;
+  border-radius: 5px;
+}
+
 input:disabled {
   background-color: #f5f5f5;
   color: #999;
 }
+
 
 /* ---------------Custom Class Styling--------------- */
 
@@ -67,7 +74,6 @@ input:disabled {
 
 .section-left {
   flex: 2;
-  border: 2px solid #003600;
   border-radius: 10px;
   flex-direction: column;
   gap: 1rem;
@@ -75,7 +81,6 @@ input:disabled {
 
 .section-right {
   flex: 2;
-  border: 2px solid #003600;
   border-radius: 10px;
   flex-direction: column;
 }
@@ -90,8 +95,11 @@ input:disabled {
   font-size: 18px;
 }
 
-#api-key-input {
+.api-key-section {
   margin-bottom: 10px;
+}
+
+#api-key-input {
   width: 160px;
 }
 
@@ -100,8 +108,8 @@ input:disabled {
 }
 
 .api-toggle-btn {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 5px 10px;
+  font-size: 15px;
   cursor: pointer;
   margin-bottom: 1rem;
 }
@@ -109,26 +117,33 @@ input:disabled {
 /* ---------------Portfolio Styling--------------- */
 
 .portfolio-btns {
-  display: flex;
-  justify-content: center;
-  gap: 10px;  
+  justify-content: left;  
 }
 
 .portfolio-btns button {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 5px 10px;
+  font-size: 15px;
   cursor: pointer;
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
+  border-spacing: 0px;
+  border: 1px solid black;
+  overflow: hidden;
+  border-radius: 10px;
 }
 
-table th,
-table td {
-  border: 1px solid #003600;
-  padding: 0.5rem;
+table th:not(:last-child),
+table td:not(:last-child) {
+ border-right: 1px solid black;
+}
+
+table>thead>tr>th, table>tbody>tr:not(:last-child)>td {
+  border-bottom: 1px solid black;
+}
+
+table th, table td {
+  padding: 0.25rem;
   text-align: center;
 }
 
@@ -157,11 +172,9 @@ form {
   background-color: #F0F0F0;
 }
 
-#form-section {
-  padding: 1rem;
-  border: 2px solid #003600;
+fieldset {
+  border: 1px solid black;
   border-radius: 10px;
-  background-color: #F0F0F0;
 }
 
 form label {
@@ -194,20 +207,23 @@ input[type=number] {
 
 .stock-btns {
   margin-bottom: 1rem;
-  display: flex;
-  justify-content: center;
-  gap: 10px;  
+  justify-content: left; 
+}
+
+#stock-ticker-input {
+  padding: 0.4rem;
 }
 
 .stock-btns button {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 5px 10px;
+  font-size: 15px;
   cursor: pointer;
 }
 
 .stock-details-grid {
   display: grid;
   border: 1px solid black;
+  border-radius: 5px;
   margin-top: 10px;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: repeat(6, auto);
@@ -250,13 +266,13 @@ input[type=number] {
 
 .chart-btns {
   display: flex;
-  justify-content: center;
+  justify-content: left;
   gap: 10px;  
 }
 
 .chart-btns button {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 5px 10px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -319,13 +335,21 @@ canvas {
   overflow: hidden; /* Prevent content from spilling outside */
 }
 
+#zFold {
+  width: 344px;
+  height: 100vh;
+  background-color: white;
+}
+
 /* SMALLER SCREENS */
-@media (max-width: 768px) {
+
+/*iPhone 14 Pro Max - Vertical*/
+@media (width: 430px) {
 
   body {
     font-family: Arial, sans-serif;
     font-weight: bold;
-    max-width: 1005vw;
+    width: 430px;
     margin: 0;
     padding: 0;
     background-color: #003600;
@@ -333,30 +357,33 @@ canvas {
     color: #000000;
   }
 
-  #portfolio-table  button {
-    font-size: 10px;
+  header {
+    width: 410px;
+    padding: 10px;
+    padding-top: 25px;
   }
 
   main {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    margin: 1rem auto;
+    padding-top: 1rem;
+    padding-left: 11px;
+    padding-right: 11px;
+    padding-bottom: 11px;
     width: 95%;
   }
 
-  .portfolio-btns button {
-    padding: 10px 20px;
-    font-size: 14px;
-    cursor: pointer;
+  #portfolio-table  button {
+    font-size: 10px;
   }
 
-  table th,
+  table {
+    font-size: 11px;
+    text-align: center;
+  }
+
   table td {
     font-size: 13px;
-    border: 1px solid #003600;
-    padding: 5px 2px;
-    text-align: center;
   }
   
   #calendar div {
@@ -426,6 +453,10 @@ canvas {
     color: #F0F0F0;
   }
 
+  .stock-details-grid {
+    overflow: hidden;
+  }
+
   .stock-label-center {
     font-weight: bold;
     font-size: .85rem;
@@ -440,18 +471,195 @@ canvas {
     font-size: 14px;
   }
 
+  #stock-details-section>button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
   .stock-btns button {
     padding: 10px 5px;
     font-size: 14px;
   }
+
+  #stock-ticker-input {
+    width: 35%;
+    height: 20px;
+    padding: 0.4rem;
+  }
+
   .portfolio-btns button {
     padding: 10px 5px;
     font-size: 14px;
   }
 
+  .api-toggle-btn {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
   #api-key-input {
-    margin-bottom: 10px;
-    width: 122px;
+    padding: 0.4rem;
+    width: 20%;
+  }
+
+}
+
+/*iPhone 14 Pro Max - Horizontal*/
+@media (width: 932px) {
+
+  body {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    width: 932px;
+    margin: 0;
+    padding: 0;
+    background-color: #003600;
+    box-sizing: border-box;
+    color: #000000;
+  }
+
+  header {
+    width: 912px;
+    padding: 10px;
+    padding-top: 25px;
+  }
+
+  main {
+    display: flex;
+    flex-direction: row;
+    padding: 16px;
+    padding-bottom: 11px;
+    justify-content: center;
+    width: 900px;
+  }
+
+  #portfolio-table  button {
+    font-size: 10px;
+  }
+
+  table {
+    font-size: 11px;
+    text-align: center;
+  }
+
+  table td {
+    font-size: 13px;
+  }
+  
+  #calendar div {
+    text-align: center;
+    background-color: lightgrey;
+    font-weight: bold;
+    position: relative; /* For absolute positioning of dividend totals */
+    border-radius: 5px;
+  }
+
+  #calendar .day-header {
+    font-size: 15px;
+    width: 2.5rem;
+    padding: 5px;
+  }
+
+  #calendar .emptyCell {
+    width: 10px;
+    height: 22px;
+  }
+
+  #calendar .dividend-total {
+    position: relative;
+    height: 1rem;
+    width: 2.5rem;
+    top: 5px;
+    font-size: .75rem;
+    text-align: center;
+    background-color: #C5A800;
+    padding: 2px 1px;
+    border-radius: 5px;
+    color: #000;
+  }
+
+  .day {
+    position: relative;
+    display: inline-block;
+    min-width: 20px; /* Set a minimum width for the day div */
+    height: 50px; /* Adjust as needed */
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    vertical-align: top;
+    box-sizing: border-box;
+    overflow: hidden; /* Prevent content from spilling outside */
+  }
+
+  .subheading {
+    font-weight: bold;
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  .module-styling {
+    padding: .5rem;
+    border: 2px solid #003600;
+    border-radius: 10px;
+    background-color: #F0F0F0;
+  }
+
+  .stock-label {
+    font-weight: bold;
+    font-size: .85rem;
+    padding: 5px;
+    text-align: right;
+    background-color: #003600;
+    color: #F0F0F0;
+  }
+
+  .stock-details-grid {
+    overflow: hidden;
+  }
+
+  .stock-label-center {
+    font-weight: bold;
+    font-size: .85rem;
+    padding: 5px;
+    text-align: center;
+    color: #F0F0F0;
+    background-color: #003600;
+  }
+
+  .chart-btns button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  #stock-details-section>button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  .stock-btns button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  #stock-ticker-input {
+    width: 35%;
+    height: 20px;
+    padding: 0.4rem;
+  }
+
+  .portfolio-btns button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  .api-toggle-btn {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
+  #api-key-input {
+    padding: 0.4rem;
+    width: 20%;
   }
 
 }
