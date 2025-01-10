@@ -361,6 +361,9 @@ form.addEventListener('submit', (e) => {
   const dividendInput = document.getElementById('stock-dividend');
   const paymentDateInput = document.getElementById('stock-payment-date');
 
+  // Call function to get full dividend history
+  fetchAllDividends(stockName);
+
   // Validate inputs
   if (!stockAmount || isNaN(stockAmount)) {
     alert('Please enter a valid amount.');
@@ -502,6 +505,7 @@ document.getElementById('stock-name').addEventListener('blur', async (e) => {
     dividendInput.placeholder = 'Fetching...';
 
     const dividendData = await fetchDividend(ticker);
+    
 
     if (dividendData) {
       fetchedDividendData = dividendData;
@@ -521,7 +525,108 @@ document.getElementById('stock-name').addEventListener('blur', async (e) => {
       paymentDateInput.placeholder = ' ';
     }
   }
+  fetchAllDividends(ticker);
 });
+
+// Function to capture all dividend history in JSON response
+const fetchAllDividends = async (ticker) => {
+  const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
+  const dividendHistory = []; // Array to store all 'amount' values
+
+  try {
+    const response = await fetch(url);
+
+    // Check if the response is JSON or plain text
+    const data = await response.json().catch(() => null);
+
+    if (!data || data.Information) {
+      console.warn('API Rate Limit reached or Error:', data ? data.Information : 'Unknown Error');
+      alert('API rate limit reached. Please try again later or upgrade to a premium plan.');
+      return null;
+    }
+
+    // Loop through the 'data' array and extract the 'amount' from each object
+    if (data['data'] && data['data'].length > 0) {
+      for (let i = 0; i < data['data'].length; i++) {
+        const dividend = data['data'][i]; // Get each dividend object
+
+        // Extract the 'amount' value and push it to the array
+        const amount = parseFloat(dividend['amount']) || 0.0000; // Default to 0 if no amount
+
+        dividendHistory.push(amount); // Store the amount
+      }
+
+      console.log("All Dividend Amounts:", dividendHistory);
+
+      // Now save this dividend history to localStorage
+      saveDividendHistoryToLocalStorage(ticker, dividendHistory);
+      
+      return dividendHistory; // Return the array of all amounts
+    } else {
+      console.warn(`No dividend data found for ${ticker}.`);
+    }
+  } catch (error) {
+    console.error('Error fetching dividend data:', error);
+  }
+
+  return null;
+};
+
+// Function to save the dividend history to localStorage
+const saveDividendHistoryToLocalStorage = (ticker, dividendHistory) => {
+  // Get the existing 'dividendHistory' from localStorage, or initialize it if not available
+  const storedHistory = JSON.parse(localStorage.getItem('dividendHistory')) || {};
+
+  // Check if the ticker already exists in localStorage
+  if (storedHistory[ticker]) {
+    const storedDividendHistory = storedHistory[ticker];
+
+    // Check if the dividend data has changed
+    let hasChanges = false;
+    if (dividendHistory.length !== Object.keys(storedDividendHistory).length) {
+      hasChanges = true;
+    } else {
+      for (let i = 0; i < dividendHistory.length; i++) {
+        if (dividendHistory[i] !== storedDividendHistory[i]) {
+          hasChanges = true;
+          break;
+        }
+      }
+    }
+
+    if (!hasChanges) {
+      console.log(`Dividend history for ${ticker} is already up to date.`);
+      return; // Do nothing if there are no changes
+    } else {
+      console.log(`Dividend history for ${ticker} has changed. Updating.`);
+    }
+  } else {
+    console.log(`No dividend history found for ${ticker}. Adding new data.`);
+  }
+
+  // Create a new object for the ticker with index keys and their corresponding dividend amounts
+  const tickerHistory = {};
+
+  for (let i = 0; i < dividendHistory.length; i++) {
+    tickerHistory[i] = dividendHistory[i];
+  }
+
+  // Add or update the ticker data in the stored history
+  storedHistory[ticker] = tickerHistory;
+
+  // Sort the stored tickers alphabetically by their keys (ticker symbols)
+  const sortedStoredHistory = Object.keys(storedHistory)
+    .sort() // Sort the keys alphabetically
+    .reduce((obj, key) => {
+      obj[key] = storedHistory[key]; // Rebuild the object in sorted order
+      return obj;
+    }, {});
+
+  // Save the updated 'dividendHistory' object back to localStorage
+  localStorage.setItem('dividendHistory', JSON.stringify(sortedStoredHistory));
+
+  console.log(`Dividend history for ${ticker} has been saved to localStorage.`);
+};
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -661,6 +766,9 @@ window.refetchDividend = async (index) => {
 
   // Update button text to indicate fetching
   button.textContent = 'Refetching...';
+
+  // Call function to get full dividend amount history
+  fetchAllDividends(stock.stockName);
 
   try {
     // Fetch new dividend data
