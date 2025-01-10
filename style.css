@@ -21,7 +21,7 @@ main {
   flex-direction: row;
   justify-content: space-between;
   margin: 1rem auto;
-  width: 75%
+  width: 65%
 }
 
 h1 {
@@ -41,6 +41,7 @@ button {
   color: #ffffff;
   cursor: pointer;
   padding: 5px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
 }
 
 button:hover {
@@ -49,11 +50,13 @@ button:hover {
 
 header button {
   border: 1px solid black;
+  font-size: 1rem;
 }
 
 input {
   border: 1px solid black;
   border-radius: 5px;
+  box-shadow: rgb(204, 219, 232) 3px 3px 6px 0px inset, rgba(255, 255, 255, 0.5) -3px -3px 6px 1px inset;
 }
 
 input:disabled {
@@ -61,14 +64,54 @@ input:disabled {
   color: #999;
 }
 
+ul {
+  display: flex;
+  list-style: none;
+  justify-content: center;
+  gap: 5px;
+  align-items: center;
+  border-radius: 5px;
+  height: 2rem;
+  margin-bottom: 0;
+  padding-left: 0;
+}
+
+li {
+  border: 1px solid black;
+  background-color: #003600;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 5px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+
+a:link, a:visited {
+  text-decoration: none;
+  color: #ffffff;
+}
+
+li:hover {
+  background-color: #005200;
+}
+
 
 /* ---------------Custom Class Styling--------------- */
 
 .module-styling {
   padding: 1rem;
-  border: 2px solid #003600;
   border-radius: 10px;
   background-color: #F0F0F0;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px, rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+}
+
+.title {
+  flex-direction: column;
+}
+
+.page-title {
+  color: #C5A800;
+  text-align: center;
 }
 
 .section-left {
@@ -97,7 +140,15 @@ input:disabled {
 }
 
 .api-key-section {
+  text-align: center;
+  color: #003600;
   margin-bottom: 10px;
+  justify-content: space-between;
+  margin: 1rem auto;
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: 0;
+  width: 65%;
 }
 
 #api-key-input {
@@ -115,6 +166,16 @@ input:disabled {
   cursor: pointer;
   margin-bottom: 1rem;
 }
+
+.get-info-btn {
+  padding: 8px;
+}
+
+#setApiKeyButton {
+  padding: 7px 10px;
+  font-size: 1rem;
+}
+
 
 /* ---------------Portfolio Styling--------------- */
 
@@ -135,6 +196,7 @@ table {
   border: 1px solid black;
   overflow: hidden;
   border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
 }
 
 table th:not(:last-child),
@@ -157,7 +219,7 @@ table th {
 }
 
 .highlight {
-  background-color: #C5A800;
+  background-color: rgba(197,168,0, 0.5);
 }
   
 #total-dividends {
@@ -179,6 +241,7 @@ form {
 fieldset {
   border: 1px solid black;
   border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
 }
 
 form label {
@@ -215,7 +278,7 @@ input[type=number] {
   justify-content: left; 
 }
 
-#stock-ticker-input {
+#stock-ticker-input, #history-ticker-input {
   padding: 0.4rem;
 }
 
@@ -234,6 +297,7 @@ input[type=number] {
   margin-right: -2px;
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: repeat(6, auto);
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
 }
 
 .stock-details-grid div {
@@ -313,6 +377,7 @@ canvas {
   font-weight: bold;
   position: relative; /* For absolute positioning of dividend totals */
   border-radius: 5px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
 }
 
 #calendar .today {
@@ -328,6 +393,7 @@ canvas {
   padding: 1px 2px;
   border-radius: 5px;
   color: #000;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
 }
 
 .day {
@@ -353,6 +419,10 @@ canvas {
     width: 60%
   }
 
+  .api-key-section {
+    width: 60%;
+  }
+
 }
 
 @media (width < 1000px) {
@@ -360,6 +430,10 @@ canvas {
   main {
     flex-direction: column;
     width: 75%
+  }
+
+  .api-key-section {
+    width: 75%;
   }
 
 }
@@ -371,6 +445,10 @@ canvas {
     width: 90%
   }
 
+  .api-key-section {
+    width: 90%;
+  }
+
 }
 
 @media (width < 680px) {
@@ -378,6 +456,10 @@ canvas {
   main {
     flex-direction: column;
     width: 95%
+  }
+
+  .api-key-section {
+    width: 95%;
   }
 
 }
@@ -402,18 +484,24 @@ canvas {
     padding-top: 25px;
   }
 
-  header button {
+  header button, header li {
     padding: 7px 10px;
+    font-size: 1rem;
   }
 
   main {
     display: flex;
     flex-direction: column;
+    margin: 0;
     padding-top: 1rem;
     padding-left: 11px;
     padding-right: 11px;
     padding-bottom: 11px;
     width: 95%;
+  }
+
+  .page-title {
+    margin-bottom: 0;
   }
 
   #portfolio-table  button {
@@ -486,6 +574,11 @@ canvas {
     background-color: #F0F0F0;
   }
 
+  .get-history-form button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
   .stock-label {
     font-weight: bold;
     font-size: .85rem;
@@ -523,7 +616,7 @@ canvas {
     font-size: 14px;
   }
 
-  #stock-ticker-input {
+  #stock-ticker-input, #history-ticker-input {
     width: 35%;
     height: 20px;
     padding: 0.4rem;
@@ -542,6 +635,18 @@ canvas {
   #api-key-input {
     padding: 0.4rem;
     width: 25%;
+  }
+
+  .api-key-section {
+    color: #003600;
+    padding-left: 0;
+    padding-right: 0;
+    margin-bottom: 0;
+  }
+
+  #setApiKeyButton {
+    padding: 7px 10px;
+    font-size: .8rem;
   }
 
 }
@@ -564,13 +669,24 @@ canvas {
     padding-top: 25px;
   }
 
-  header button {
+  header button, header li {
     padding: 7px 10px;
+    font-size: 1rem;
   }
 
   main {
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding-top: 1rem;
+    padding-left: 11px;
+    padding-right: 11px;
+    padding-bottom: 11px;
+    width: 95%;
+  }
+
+  .page-title {
+    margin-bottom: 0;
   }
 
   #portfolio-table  button {
@@ -643,6 +759,11 @@ canvas {
     background-color: #F0F0F0;
   }
 
+  .get-history-form button {
+    padding: 10px 5px;
+    font-size: 14px;
+  }
+
   .stock-label {
     font-weight: bold;
     font-size: .82rem;
@@ -680,8 +801,8 @@ canvas {
     font-size: 14px;
   }
 
-  #stock-ticker-input {
-    width: 33%;
+  #stock-ticker-input, #history-ticker-input {
+    width: 32%;
     height: 20px;
     padding: 0.4rem;
   }
@@ -698,7 +819,19 @@ canvas {
 
   #api-key-input {
     padding: 0.4rem;
-    width: 25%;
+    width: 21%;
+  }
+
+  .api-key-section {
+    color: #003600;
+    padding-left: 0;
+    padding-right: 0;
+    margin-bottom: 0;
+  }
+
+  #setApiKeyButton {
+    padding: 7px 10px;
+    font-size: .9rem;
   }
 
 }

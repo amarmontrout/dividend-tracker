@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Data</title>
+    <link rel="stylesheet" href="./chart.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+    <header>
+        <h1>Dividend Portfolio Tracker</h1>
+        
+        <div class="data-btns">
+            <button id="save-all-data-btn">Save Data</button>
+            <button id="load-all-data-btn">Load Data</button>
+            <input type="file" id="file-input" accept=".json" style="display: none;">
+        </div>
+        <div class="page-links">
+            <ul>
+                <li><a href="../index.html">Portfolio</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <section class="title"><h2 class="page-title"> My Dividend Charts</h2></section>
+
+    <main>
+
+        <section id="left-section" class="section-left">
+
+            <!-- Calendar Section -->
+            <div id="calendar-section" class="module-styling">
+                <h2>Calendar</h2>
+                <div id="calendar-header">
+                    <span id="month-year" class="subheading"></span>
+                    <span id="total-month-dividends" class="subheading"></span>
+                </div>
+                <div id="calendar"></div>
+            </div>
+
+            <!-- Stock Details Section -->
+            <div id="stock-details-section" class="module-styling">
+                <h2>Stock Dividend Details</h2>
+                <label for="stock-ticker-input">Enter Stock Ticker:</label>
+                <input type="text" id="stock-ticker-input" placeholder="e.g., IBM">
+                <button class="get-info-btn" onclick="fetchStockDetails()">Get Details</button>
+                <div class="stock-details-grid">
+                    <div class="ticker"></div>
+                    <div class="stock-label-center">Current Details</div>
+                    <div class="stock-label-center">Previous Details</div>
+                    
+                    <div class="stock-label">Ex-Dividend Date</div>
+                    <div id="recentExDividendDate" class="stock-data"></div>
+                    <div id="previousExDividendDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Declaration Date</div>
+                    <div id="recentDeclarationDate" class="stock-data"></div>
+                    <div id="previousDeclarationDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Record Date</div>
+                    <div id="recentRecordDate" class="stock-data"></div>
+                    <div id="previousRecordDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Payment Date</div>
+                    <div id="recentPaymentDate" class="stock-data"></div>
+                    <div id="previousPaymentDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Dividend Amount</div>
+                    <div id="recentDividendAmount" class="stock-data"></div>
+                    <div id="previousDividendAmount" class="stock-data"></div>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="right-section" class="section-right">
+
+            <!-- History Section -->
+            <div id="history-section" class="module-styling">
+                <h2>Company Dividend History</h2>
+                <div class="get-history-form">
+                    <label for="history-ticker-input">Enter Stock Ticker:</label>
+                    <input type="text" id="history-ticker-input" placeholder="e.g., IBM">
+                    <button class="get-info-btn" id="get-dividend-history-btn">Get History</button>
+                </div>
+                <canvas id="history-chart"></canvas>
+            </div>
+
+            <!-- Chart Section -->
+            <div id="chart-section" class="module-styling">
+                <h2>Portfolio Growth</h2>
+                <div class="chart-btns">
+                    <button id="set-dividend-btn">Set Point</button>
+                </div>
+                <canvas id="dividend-chart"></canvas>
+            </div>
+
+        </section>
+
+    </main>
+    <script src="./chart.js"></script>
+</body>
+</html>
