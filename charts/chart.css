@@ -11,8 +11,10 @@ body {
   
   header {
     background-color: #004d00;
+    padding-top: 100px;
     color: #C5A800;
-    padding: 1rem;
+    padding: 10px;
+    padding-top: 40px;
     text-align: center;
   }
   
@@ -66,23 +68,24 @@ body {
 
   ul {
     display: flex;
-    list-style: none;
-    justify-content: center;
-    gap: 5px;
-    align-items: center;
-    border-radius: 5px;
-    height: 2rem;
-    margin-bottom: 0;
-    padding-left: 0;
+  list-style: none;
+  justify-content: center;
+  width: 100vw;
+  gap: 5px;
+  align-items: center;
+  margin-block-start: 0;
+  margin-block-end: 0;
+  padding-left: 0;
   }
 
   li {
     border: 1px solid black;
+    height: 18px;
     background-color: #003600;
     border-radius: 5px;
     font-size: 1rem;
     cursor: pointer;
-    padding: 5px;
+    padding: 5px 15px;
     box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
   }
 
@@ -94,7 +97,6 @@ body {
   li:hover {
     background-color: #005200;
   }
-  
   
   /* ---------------Custom Class Styling--------------- */
   
@@ -113,6 +115,13 @@ body {
   .page-title {
     color: #C5A800;
     text-align: center;
+  }
+
+  .page-links {
+    position: fixed;
+    height: 30px;
+    background-color: #003600;
+    z-index: 1;
   }
   
   .section-left {
@@ -163,15 +172,17 @@ body {
   .get-info-btn {
     padding: 8px;
   }
-  
-  
-  /* ---------------Portfolio Styling--------------- */
-  
 
-  
-  /* ---------------Add Stock Styling--------------- */
-  
+  #calendar-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 5px;
+  }
 
+  #calendar-controls button {
+    padding: 5px 10px;
+  }
   
   /* ---------------Stock Dividend Details Styling--------------- */
   
@@ -268,7 +279,7 @@ body {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 5px;
-    margin-top: 20px;
+    margin-top: 5px;
     font-size: 1.2rem;
     position: relative;
   }
@@ -368,7 +379,7 @@ body {
     header {
       width: 410px;
       padding: 10px;
-      padding-top: 25px;
+      padding-top: 40px;
     }
   
     header button, header li {
@@ -518,7 +529,7 @@ body {
   
     header {
       padding: 10px;
-      padding-top: 25px;
+      padding-top: 40px;
     }
   
     header button {

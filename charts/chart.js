@@ -3,6 +3,15 @@ const ctx2 = document.getElementById("history-chart").getContext("2d");
 const placeholderLabels = Array.from({ length: 10 }, (_, i) => ``);
 const placeholderData = Array(10).fill(0); // Flat line at 0
 
+let displayedMonth = new Date().getMonth();
+let displayedYear = new Date().getFullYear();
+
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// MISC FUNCTIONS
+
+
 // Helper function to format date
 const formatDate = (dateString) => {
   if (!dateString || dateString === 'N/A') return 'N/A'; // Handle empty or invalid dates
@@ -15,6 +24,14 @@ const formatDate = (dateString) => {
 
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
+
+// Display alert for placeholder elements
+const placeholders = document.getElementsByClassName("placeholder");
+Array.from(placeholders).forEach(element => {
+  element.addEventListener('click', () => {
+    alert("This is a placeholder.");
+  });
+});
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -90,7 +107,6 @@ document.getElementById('load-all-data-btn').addEventListener('click', () => {
             totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * parseFloat(stock.stockDividend), 0);
 
             // Re-render the portfolio and update chart
-            // renderPortfolio();
             const chartData = loadChartData(); // Reload chart data from localStorage
             dividendChart.data.labels = chartData.labels;
             dividendChart.data.datasets[0].data = chartData.data;
@@ -112,6 +128,343 @@ document.getElementById('load-all-data-btn').addEventListener('click', () => {
       alert('Please select a valid JSON file.');
     }
   });
+});
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// CALENDAR FUNCTIONS
+
+
+// Function to get portfolio data from localStorage
+function getPortfolio() {
+  const data = localStorage.getItem("portfolio");  // Retrieve the data from 'portfolio' key
+  return data ? JSON.parse(data) : {};  // Parse and return the data, or return an empty object if not found
+}
+
+// Call the generateCalendar function when the page loads
+document.addEventListener('DOMContentLoaded', () => {generateCalendar();});
+
+// Function to get date information
+function getDateInfo(month = displayedMonth, year = displayedYear) {
+  const today = new Date();
+  const currentMonth = month;
+  const currentYear = year;
+
+  // Get the first and last day of the current month
+  const firstDay = new Date(currentYear, currentMonth, 1);
+  const lastDay = new Date(currentYear, currentMonth + 1, 0); // Last day of the month
+  const totalDays = lastDay.getDate(); // Number of days in the current month
+  const firstDayWeekday = firstDay.getDay(); // Day of the week for the first day of the month
+
+  return { currentMonth, currentYear, firstDay, lastDay, totalDays, firstDayWeekday, today };
+}
+
+// Function to handle dividend logic
+function calculateDividendsMap(currentMonth, currentYear) {
+  const dividendsMap = {};
+  const portfolio = getPortfolio(); // Retrieve the portfolio from the new location
+
+  // Iterate over the keys in the portfolio (the ticker symbols)
+  for (const ticker in portfolio) {
+    const stock = portfolio[ticker];
+    const paymentDateStr = stock.stockPaymentDate; // yyy-mm-dd
+
+    // If there's no payment date, skip this stock
+    if (!paymentDateStr) continue;
+
+    const [year, month, day] = paymentDateStr.split('-'); // Extract year, month, and day
+
+    // Create a date object for the payment date
+    const paymentDate = new Date(year, month - 1, day);
+
+    // Only add dividends for the current month
+    if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+      const paymentDay = paymentDate.getDate(); // Correct day of the month (1-31)
+
+      const totalDividend = ((stock.stockAmount * stock.stockDividend)).toFixed(2); // Use the dividend from the latest data
+
+      // Store the dividend total for the day
+      if (dividendsMap[paymentDay]) {
+        dividendsMap[paymentDay] = (parseFloat(dividendsMap[paymentDay]) + parseFloat(totalDividend)).toFixed(2);
+      } else {
+        dividendsMap[paymentDay] = totalDividend;
+      }
+    }
+  }
+
+  return dividendsMap;
+}
+
+// Function to generate calendar
+function generateCalendar() {
+  const { currentMonth, currentYear, totalDays, firstDayWeekday, today } = getDateInfo(displayedMonth, displayedYear);
+  const calendarContainer = document.getElementById('calendar');
+  const monthYearElement = document.getElementById('month-year');
+  const totalDividendsElement = document.getElementById('total-month-dividends');
+
+  // Update the month-year text content
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June', 'July', 
+    'August', 'September', 'October', 'November', 'December'
+  ];
+  monthYearElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+  
+  // Clear previous calendar contents
+  calendarContainer.innerHTML = '';
+
+  // Create the days of the week header
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  daysOfWeek.forEach(day => {
+    const dayElement = document.createElement('div');
+    dayElement.textContent = day;
+    calendarContainer.appendChild(dayElement);
+    dayElement.classList.add('day-header');
+  });
+
+  // Create blank cells for days before the 1st of the month
+  for (let i = 0; i < firstDayWeekday; i++) {
+    const emptyCell = document.createElement('div');
+    calendarContainer.appendChild(emptyCell);
+    emptyCell.classList.add('empty-day');
+  }
+
+  // Calculate dividends for the current month
+  const dividendsMap = calculateDividendsMap(currentMonth, currentYear);
+
+  // Calculate the total dividends for the current month
+  let totalDividendsForMonth = 0;
+  Object.values(dividendsMap).forEach(dividend => {
+    totalDividendsForMonth += parseFloat(dividend);
+  });
+
+  // Update the total dividends display
+  totalDividendsElement.textContent = `Estimated Total Dividends: $${totalDividendsForMonth.toFixed(2)}`;
+
+  // Create the days of the month
+  for (let day = 1; day <= totalDays; day++) {
+    const dayElement = document.createElement('div');
+    dayElement.textContent = day;
+    dayElement.classList.add('day');
+    
+    // Highlight today's date only if it's the current month and year
+    if (
+      currentMonth === today.getMonth() &&
+      currentYear === today.getFullYear() &&
+      day === today.getDate()
+    ) {
+      dayElement.classList.add('today');
+    }
+
+    // Display the dividend total if it exists for this day
+    if (dividendsMap[day]) {
+      const dividendTotal = document.createElement('div');
+      dividendTotal.classList.add('dividend-total');
+      dividendTotal.textContent = `$${dividendsMap[day]}`;
+      dayElement.appendChild(dividendTotal);
+    }
+
+    // Append the day element to the calendar container
+    calendarContainer.appendChild(dayElement);
+  }
+
+  // Calculate how many empty cells are needed to complete the last row
+  const totalCells = firstDayWeekday + totalDays;  // Total cells in the calendar (including blanks)
+  const remainingCells = totalCells % 7;  // Cells remaining after the last day
+  const cellsToFill = remainingCells === 0 ? 0 : 7 - remainingCells; // Add empty cells to fill the last row
+
+  // Add empty cells to the last row if necessary
+  for (let i = 0; i < cellsToFill; i++) {
+    const emptyCell = document.createElement('div');
+    calendarContainer.appendChild(emptyCell);
+  }
+
+  console.log('Calendar Rendered'); // Console Log Action
+}
+
+// Function to refresh the calendar
+function refreshCalendar() {
+  generateCalendar(); // Re-generate the calendar with the updated portfolio
+  console.log('Calendar Refreshed'); // Console Log Action
+}
+
+// Event listeners for previous month and next month buttons
+document.getElementById('prev-month').addEventListener('click', () => {
+  displayedMonth -= 1;
+  if (displayedMonth < 0) {
+    displayedMonth = 11; // Wrap to December of the previous year
+    displayedYear -= 1;
+  }
+  generateCalendar();
+});
+
+document.getElementById('next-month').addEventListener('click', () => {
+  displayedMonth += 1;
+  if (displayedMonth > 11) {
+    displayedMonth = 0; // Wrap to January of the next year
+    displayedYear += 1;
+  }
+  generateCalendar();
+});
+
+document.getElementById('current-month').addEventListener('click', () => {
+  // Reset to current month and year
+  displayedMonth = new Date().getMonth();
+  displayedYear = new Date().getFullYear();
+
+  // Regenerate the calendar for the current month and year
+  generateCalendar();
+});
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// STOCK DIVIDEND DETAIL FUNCTIONS
+
+
+// Fetch detailed stock data
+const fetchStockDetails = async () => {
+  const tickerInput = document.getElementById('stock-ticker-input');
+  const ticker = tickerInput.value.trim().toUpperCase(); // Ensure ticker is uppercase
+
+  if (!ticker) {
+    alert('Please enter a stock ticker.');
+    return;
+  }
+
+  // Set the ticker in the top-left grid cell
+  const gridTickerCell = document.querySelector('.stock-details-grid .ticker');
+  gridTickerCell.textContent = ticker;
+
+  // Retrieve the portfolio from localStorage
+  const portfolio = JSON.parse(localStorage.getItem('portfolio'));
+
+  if (!portfolio) {
+    alert('No portfolio found in localStorage.');
+    return;
+  }
+
+  // Find the stock in the portfolio
+  const stock = portfolio.find((stock) => stock.stockName === ticker);
+
+  if (stock) {
+    console.log('Stock found in localStorage:', stock);
+
+    // Check if the stock has the new latest/previous structure
+    const stockData = JSON.parse(localStorage.getItem('data'))[ticker] || {};
+    const latest = stockData.latest || {};
+    const previous = stockData.previous || {};
+
+    // Populate the stock details section
+    document.getElementById('recentExDividendDate').textContent = formatDate(latest.exDividendDate) || 'N/A';
+    document.getElementById('recentDeclarationDate').textContent = formatDate(latest.declarationDate) || 'N/A';
+    document.getElementById('recentRecordDate').textContent = formatDate(latest.recordDate) || 'N/A';
+    document.getElementById('recentPaymentDate').textContent = formatDate(latest.paymentDate) || 'N/A';
+    document.getElementById('recentDividendAmount').textContent = `$${parseFloat(latest.dividend || 0).toFixed(4)}` || '$0.00';
+
+    // Populate previous details
+    document.getElementById('previousExDividendDate').textContent = formatDate(previous.exDividendDate) || 'N/A';
+    document.getElementById('previousDeclarationDate').textContent = formatDate(previous.declarationDate) || 'N/A';
+    document.getElementById('previousRecordDate').textContent = formatDate(previous.recordDate) || 'N/A';
+    document.getElementById('previousPaymentDate').textContent = formatDate(previous.paymentDate) || 'N/A';
+    document.getElementById('previousDividendAmount').textContent = `$${parseFloat(previous.dividend || 0).toFixed(4)}`;
+  } else {
+    console.log('Stock not found in portfolio.');
+
+    // Reset the grid when stock isn't found
+    gridTickerCell.textContent = ''; // Clear ticker in the top-left grid cell
+
+    // Clear all stock details cells
+    const fields = [
+      'recentExDividendDate', 'recentDeclarationDate', 'recentRecordDate', 'recentPaymentDate', 'recentDividendAmount',
+      'previousExDividendDate', 'previousDeclarationDate', 'previousRecordDate', 'previousPaymentDate', 'previousDividendAmount',
+    ];
+    fields.forEach((field) => {
+      document.getElementById(field).textContent = field.includes('Amount') ? '$0.0000' : 'N/A';
+    });
+
+    // Alert the user
+    alert('Stock not found in portfolio.');
+  }
+
+  // Clear the input field and show the placeholder
+  tickerInput.value = '';
+};
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// DIVIDEND HISTORY FUNCTIONS
+
+
+const historyChart = new Chart(ctx2, {
+  type: "line",
+  data: {
+    labels: placeholderLabels, // Placeholder labels
+    datasets: [{
+      label: "Data Point",
+      data: placeholderData, // Placeholder data
+      borderColor: "rgba(197,168,0, 1)",
+      backgroundColor: "rgba(197,168,0, 0.2)",
+      borderWidth: 2,
+      pointRadius: 3,
+      fill: true,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true
+      }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: "Ex-Dividend Date" }
+      },
+      y: {
+        title: { display: true, text: "Dividend Amount" },
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+// Function to update the chart with real data
+document.getElementById("get-dividend-history-btn").addEventListener("click", () => {
+  const tickerInputField = document.getElementById("history-ticker-input"); // Input field element
+  const tickerInput = document.getElementById("history-ticker-input").value.trim().toUpperCase(); // Get input and convert to uppercase
+  const storedHistory = JSON.parse(localStorage.getItem("dividendHistory")) || {}; // Fetch stored history
+
+  if (!storedHistory[tickerInput]) {
+    alert("This ticker is not in your portfolio.");
+    return;
+  }
+
+  const tickerData = storedHistory[tickerInput];
+  const amountData = tickerData.Amount;
+  const dateData = tickerData.ExDate;
+
+  const dataLength = Object.keys(amountData).length;
+
+  // Extract the dividend amounts and dates for plotting
+  const dividendAmounts = [];
+  const exDividendDates = [];
+
+  for (let i = 0; i < dataLength; i++) {
+    dividendAmounts.push(amountData[i]);
+    exDividendDates.push(dateData[i]);
+  }
+
+  // Reverse the order of the data and labels
+  const reversedAmounts = dividendAmounts.reverse();
+  const reversedDates = exDividendDates.reverse();
+
+  // Update the chart with new data
+  historyChart.data.labels = exDividendDates; // Use dates as labels
+  historyChart.data.datasets[0].data = dividendAmounts; // Use dividend amounts as data
+  historyChart.data.datasets[0].label = `${tickerInput} Dividend History`;
+  historyChart.update();
+
+  // Clear the input field and show the placeholder
+  tickerInputField.value = '';
 });
 
 
@@ -192,423 +545,4 @@ const updateChart = () => {
 document.getElementById('set-dividend-btn').addEventListener('click', () => {
   updateChart(); // Update the chart with the current total dividends
   saveChartData(); // Save the updated chart data to localStorage
-});
-
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// STOCK DIVIDEND DETAIL FUNCTIONS
-
-
-// Fetch detailed stock data
-const fetchStockDetails = async () => {
-  const tickerInput = document.getElementById('stock-ticker-input');
-  const ticker = tickerInput.value.trim().toUpperCase(); // Ensure ticker is uppercase
-
-  if (!ticker) {
-    alert('Please enter a stock ticker.');
-    return;
-  }
-
-  // Set the ticker in the top-left grid cell
-  const gridTickerCell = document.querySelector('.stock-details-grid .ticker');
-  gridTickerCell.textContent = ticker;
-
-  // Retrieve the portfolio from localStorage
-  const portfolio = JSON.parse(localStorage.getItem('portfolio'));
-
-  if (!portfolio) {
-    alert('No portfolio found in localStorage.');
-    return;
-  }
-
-  // Find the stock in the portfolio
-  const stock = portfolio.find((stock) => stock.stockName === ticker);
-
-  if (stock) {
-    console.log('Stock found in localStorage:', stock);
-
-    // Check if the stock has the new latest/previous structure
-    const stockData = JSON.parse(localStorage.getItem('data'))[ticker] || {};
-    const latest = stockData.latest || {};
-    const previous = stockData.previous || {};
-
-    // Populate the stock details section
-    document.getElementById('recentExDividendDate').textContent = formatDate(latest.exDividendDate) || 'N/A';
-    document.getElementById('recentDeclarationDate').textContent = formatDate(latest.declarationDate) || 'N/A';
-    document.getElementById('recentRecordDate').textContent = formatDate(latest.recordDate) || 'N/A';
-    document.getElementById('recentPaymentDate').textContent = formatDate(latest.paymentDate) || 'N/A';
-    document.getElementById('recentDividendAmount').textContent = `$${parseFloat(latest.dividend || 0).toFixed(4)}` || '$0.00';
-
-    // Populate previous details
-    document.getElementById('previousExDividendDate').textContent = formatDate(previous.exDividendDate) || 'N/A';
-    document.getElementById('previousDeclarationDate').textContent = formatDate(previous.declarationDate) || 'N/A';
-    document.getElementById('previousRecordDate').textContent = formatDate(previous.recordDate) || 'N/A';
-    document.getElementById('previousPaymentDate').textContent = formatDate(previous.paymentDate) || 'N/A';
-    document.getElementById('previousDividendAmount').textContent = `$${parseFloat(previous.dividend || 0).toFixed(4)}`;
-  } else {
-    console.log('Stock not found in portfolio.');
-
-    // Reset the grid when stock isn't found
-    gridTickerCell.textContent = ''; // Clear ticker in the top-left grid cell
-
-    // Clear all stock details cells
-    const fields = [
-      'recentExDividendDate', 'recentDeclarationDate', 'recentRecordDate', 'recentPaymentDate', 'recentDividendAmount',
-      'previousExDividendDate', 'previousDeclarationDate', 'previousRecordDate', 'previousPaymentDate', 'previousDividendAmount',
-    ];
-    fields.forEach((field) => {
-      document.getElementById(field).textContent = field.includes('Amount') ? '$0.0000' : 'N/A';
-    });
-
-    // Alert the user
-    alert('Stock not found in portfolio.');
-  }
-
-  // Clear the input field and show the placeholder
-  tickerInput.value = '';
-};
-
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// ADD STOCK FUNCTIONS
-
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// MY PORTFOLIO FUNCTIONS
-
-/*
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// API KEY FUNCTIONS
-
-
-// Add an event listener to the "Set API Key" button
-document.getElementById('setApiKeyButton').addEventListener('click', updateApiKeyFromInput);
-
-// Function to update the apiKey when the "Set" button is clicked
-function updateApiKeyFromInput() {
-  const apiKeyInput = document.getElementById('api-key-input');  // Get the input element
-  apiKey = apiKeyInput.value.trim();  // Get the value from the input and set it to apiKey variable
-  // Check if the API key is not empty
-  if (apiKey !== '') {
-    // Save the API key to localStorage
-    localStorage.setItem('apiKey', apiKey);
-
-    // Clear the input field
-    apiKeyInput.value = '';
-
-    // Show the success alert
-    alert('API Key successfully set!');
-
-    console.log('API Key set:', apiKey);  // For debugging, you can see the new API key in the console
-  } else {
-    // If the input field is empty, show an error alert
-    alert('Please enter a valid API Key.');
-  }
-}
-
-// Function to load API key from localStorage on page load
-function loadApiKeyFromLocalStorage() {
-  const storedApiKey = localStorage.getItem('apiKey');  // Retrieve the stored API key
-
-  if (storedApiKey) {
-      apiKey = storedApiKey;  // Set the apiKey variable to the stored value
-      console.log('Loaded API Key from localStorage:', apiKey);  // For debugging
-  }
-}
-
-// Call the function to load the API key when the page loads
-window.onload = loadApiKeyFromLocalStorage;
-
-*/
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// CALENDAR FUNCTIONS
-
-
-// Call the generateCalendar function when the page loads
-document.addEventListener('DOMContentLoaded', generateCalendar);
-
-// Function to get date information
-function getDateInfo() {
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  // Get the first and last day of the current month
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const lastDay = new Date(currentYear, currentMonth + 1, 0); // Last day of the month
-  const totalDays = lastDay.getDate(); // Number of days in the current month
-  const firstDayWeekday = firstDay.getDay(); // Day of the week for the first day of the month
-
-  return { currentMonth, currentYear, firstDay, lastDay, totalDays, firstDayWeekday, today };
-}
-
-// Function to get portfolio data from localStorage (now from 'data' key)
-function getPortfolio() {
-  const data = localStorage.getItem("portfolio");  // Retrieve the data from 'data' key
-  return data ? JSON.parse(data) : {};  // Parse and return the data, or return an empty object if not found
-}
-
-// Function to handle dividend logic
-function calculateDividendsMap(currentMonth, currentYear) {
-  const dividendsMap = {};
-  const portfolio = getPortfolio(); // Retrieve the portfolio from the new location
-  currentMonth // 0
-  currentYear // 2025
-
-  // Iterate over the keys in the portfolio (the ticker symbols)
-  for (const ticker in portfolio) {
-    const stock = portfolio[ticker];
-    const paymentDateStr = stock.stockPaymentDate; // yyy-mm-dd
-
-    // If there's no payment date, skip this stock
-    if (!paymentDateStr) continue;
-
-    const [year, month, day] = paymentDateStr.split('-'); // Extract year, month, and day
-
-    // Create a date object for the payment date
-    const paymentDate = new Date(year, month - 1, day); // Correct here
-
-    // Only add dividends for the current month // if logic looks good
-    if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-      const paymentDay = paymentDate.getDate(); // Correct day of the month (1-31)
-      // paymentDay is correct here
-      const totalDividend = ((stock.stockAmount * stock.stockDividend)).toFixed(2); // Use the dividend from the latest data
-
-      // Store the dividend total for the day
-      if (dividendsMap[paymentDay]) {
-        dividendsMap[paymentDay] = (parseFloat(dividendsMap[paymentDay]) + parseFloat(totalDividend)).toFixed(2);
-      } else {
-        dividendsMap[paymentDay] = totalDividend;
-      }
-    }
-  }
-  // dividendsMap is looking correct here
-  return dividendsMap;
-}
-
-// Function to generate calendar
-function generateCalendar() {
-  const { currentMonth, currentYear, totalDays, firstDayWeekday, today } = getDateInfo();
-  const calendarContainer = document.getElementById('calendar');
-  const monthYearElement = document.getElementById('month-year');
-  const totalDividendsElement = document.getElementById('total-month-dividends');
-
-  // Update the month-year text content
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June', 'July', 
-    'August', 'September', 'October', 'November', 'December'
-  ];
-  monthYearElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-  
-  // Clear previous calendar contents
-  calendarContainer.innerHTML = '';
-
-  // Create the days of the week header
-  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  daysOfWeek.forEach(day => {
-    const dayElement = document.createElement('div');
-    dayElement.textContent = day;
-    calendarContainer.appendChild(dayElement);
-    dayElement.classList.add('day-header');
-  });
-
-  // Create blank cells for days before the 1st of the month
-  for (let i = 0; i < firstDayWeekday; i++) {
-    const emptyCell = document.createElement('div');
-    calendarContainer.appendChild(emptyCell);
-    emptyCell.classList.add('empty-day');
-  }
-
-  // Calculate dividends for the current month
-  const dividendsMap = calculateDividendsMap(currentMonth, currentYear);
-
-  //----------- Dividend logic is correct up to here
-
-  // Calculate the total dividends for the current month
-  let totalDividendsForMonth = 0;
-  Object.values(dividendsMap).forEach(dividend => {
-    totalDividendsForMonth += parseFloat(dividend);
-  });
-
-  // logic is correct to here but total dividend is wrong
-
-  // Update the total dividends display
-  totalDividendsElement.textContent = `Estimated Total Dividends: $${totalDividendsForMonth.toFixed(2)}`;
-
-  // Create the days of the month
-  for (let day = 1; day <= totalDays; day++) {
-    const dayElement = document.createElement('div');
-    dayElement.textContent = day;
-    dayElement.classList.add('day');
-    
-    // Highlight today's date
-    if (day === today.getDate()) {
-      dayElement.classList.add('today');
-    }
-
-    // Display the dividend total if it exists for this day
-    if (dividendsMap[day]) {
-      const dividendTotal = document.createElement('div');
-      dividendTotal.classList.add('dividend-total');
-      dividendTotal.textContent = `$${dividendsMap[day]}`;
-      dayElement.appendChild(dividendTotal);
-    }
-
-    // Append the day element to the calendar container
-    calendarContainer.appendChild(dayElement);
-  }
-
-  // Calculate how many empty cells are needed to complete the last row
-  const totalCells = firstDayWeekday + totalDays;  // Total cells in the calendar (including blanks)
-  const remainingCells = totalCells % 7;  // Cells remaining after the last day
-  const cellsToFill = remainingCells === 0 ? 0 : 7 - remainingCells; // Add empty cells to fill the last row
-
-  // Add empty cells to the last row if necessary
-  for (let i = 0; i < cellsToFill; i++) {
-    const emptyCell = document.createElement('div');
-    calendarContainer.appendChild(emptyCell);
-  }
-
-  console.log('Calendar Rendered'); // Console Log Action
-}
-
-// Function to highlight the stock row with payment date 2 and 3 months ago
-function highlightOldStock() {
-  // Get the current date
-  const today = new Date();
-
-  // Get the month and year for one months ago
-  const oneMonthAgo = new Date(today);
-  oneMonthAgo.setMonth(today.getMonth() - 1);
-  
-  // Get the month and year for two months ago
-  const twoMonthsAgo = new Date(today);
-  twoMonthsAgo.setMonth(today.getMonth() - 2);
-  
-  // Get the month and year for three months ago
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(today.getMonth() - 3);
-
-  // Extract the month values (0-based month: January = 0, December = 11)
-  const twoMonthsAgoMonth = twoMonthsAgo.getMonth();
-  const threeMonthsAgoMonth = threeMonthsAgo.getMonth();
-  const oneMonthAgoMonth = oneMonthAgo.getMonth();
-
-  // Loop through the portfolio and check if the payment date is two or three months ago
-  portfolio.forEach((stock, index) => {
-    // Parse the payment date (Assuming the format is YYYY-MM-DD)
-    const [year, month, day] = stock.stockPaymentDate.split('-');
-    const stockMonth = parseInt(month) - 1; // Month is 1-based in the stock data, so subtract 1
-
-    // Compare if the payment date is exactly one months ago
-    if (stockMonth === oneMonthAgoMonth) {
-      // Find the corresponding row and add a CSS class for highlighting
-      const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
-      if (stockRow) {
-        stockRow.classList.add('highlight'); // Add the highlight class
-      }
-    }
-
-    // Compare if the payment date is exactly two months ago
-    if (stockMonth === twoMonthsAgoMonth) {
-      // Find the corresponding row and add a CSS class for highlighting
-      const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
-      if (stockRow) {
-        stockRow.classList.add('highlight'); // Add the highlight class
-      }
-    }
-
-    // Compare if the payment date is exactly three months ago
-    if (stockMonth === threeMonthsAgoMonth) {
-      // Find the corresponding row and add a CSS class for highlighting
-      const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
-      if (stockRow) {
-        stockRow.classList.add('highlight'); // Add the highlight class
-      }
-    }
-  });
-}
-
-// Function to refresh the calendar
-function refreshCalendar() {
-  generateCalendar(); // Re-generate the calendar with the updated portfolio
-  console.log('Calendar Refreshed'); // Console Log Action
-}
-
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// DIVIDEND HISTORY FUNCTIONS
-
-
-const historyChart = new Chart(ctx2, {
-  type: "line",
-  data: {
-    labels: placeholderLabels, // Placeholder labels
-    datasets: [{
-      label: "Data Point",
-      data: placeholderData, // Placeholder data
-      borderColor: "rgba(197,168,0, 1)",
-      backgroundColor: "rgba(197,168,0, 0.2)",
-      borderWidth: 2,
-      pointRadius: 3,
-      fill: true,
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: true
-      }
-    },
-    scales: {
-      x: {
-        title: { display: true, text: "Ex-Dividend Date" }
-      },
-      y: {
-        title: { display: true, text: "Dividend Amount" },
-        beginAtZero: true
-      }
-    }
-  }
-});
-
-// Function to update the chart with real data
-document.getElementById("get-dividend-history-btn").addEventListener("click", () => {
-  const tickerInputField = document.getElementById("history-ticker-input"); // Input field element
-  const tickerInput = document.getElementById("history-ticker-input").value.trim().toUpperCase(); // Get input and convert to uppercase
-  const storedHistory = JSON.parse(localStorage.getItem("dividendHistory")) || {}; // Fetch stored history
-
-  if (!storedHistory[tickerInput]) {
-    alert("This ticker is not in your portfolio.");
-    return;
-  }
-
-  const tickerData = storedHistory[tickerInput];
-  const amountData = tickerData.Amount;
-  const dateData = tickerData.ExDate;
-
-  const dataLength = Object.keys(amountData).length;
-
-  // Extract the dividend amounts and dates for plotting
-  const dividendAmounts = [];
-  const exDividendDates = [];
-
-  for (let i = 0; i < dataLength; i++) {
-    dividendAmounts.push(amountData[i]);
-    exDividendDates.push(dateData[i]);
-  }
-
-  // Reverse the order of the data and labels
-  const reversedAmounts = dividendAmounts.reverse();
-  const reversedDates = exDividendDates.reverse();
-
-  // Update the chart with new data
-  historyChart.data.labels = exDividendDates; // Use dates as labels
-  historyChart.data.datasets[0].data = dividendAmounts; // Use dividend amounts as data
-  historyChart.data.datasets[0].label = `${tickerInput} Dividend History`;
-  historyChart.update();
-
-  // Clear the input field and show the placeholder
-  tickerInputField.value = '';
 });

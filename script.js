@@ -9,6 +9,9 @@ const toggleButton = document.getElementById('toggle-api-manual-btn');
 let isManualEntry = false; // Track the current mode (false = API, true = Manual)
 
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// MISC FUNCTIONS
+
 
 // Helper function to format date
 const formatDate = (dateString) => {
@@ -23,9 +26,17 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
+// Display alert for placeholder elements
+const placeholders = document.getElementsByClassName("placeholder");
+Array.from(placeholders).forEach(element => {
+  element.addEventListener('click', () => {
+    alert("This is a placeholder.");
+  });
+});
+
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// SAVE AND LOAD BUTTONS
+// SAVE, LOAD, AND CLEAR BUTTONS
 
 // Save all local storage data as a single JSON file
 document.getElementById('save-all-data-btn').addEventListener('click', () => {
@@ -71,6 +82,7 @@ document.getElementById('load-all-data-btn').addEventListener('click', () => {
 
   fileInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
+    console.log("This is the file:" + file);
     if (file && file.type === 'application/json') {
       const reader = new FileReader();
 
@@ -78,6 +90,7 @@ document.getElementById('load-all-data-btn').addEventListener('click', () => {
       reader.onload = (e) => {
         try {
           const loadedData = JSON.parse(e.target.result); // Parse the JSON data
+          console.log("This is the loadedData after onload:" + loadedData);
 
           // Loop through the loaded data and store it back in localStorage
           for (const key in loadedData) {
@@ -95,13 +108,8 @@ document.getElementById('load-all-data-btn').addEventListener('click', () => {
             // Update the total dividends
             totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * parseFloat(stock.stockDividend), 0);
 
-            // Re-render the portfolio and update chart
+            // Re-render the portfolio
             renderPortfolio();
-            const chartData = loadChartData(); // Reload chart data from localStorage
-            dividendChart.data.labels = chartData.labels;
-            dividendChart.data.datasets[0].data = chartData.data;
-            dividendChart.update(); // Refresh the chart with the updated data
-            refreshCalendar();
           }
           
           alert('All local storage data has been restored.');
@@ -133,92 +141,51 @@ document.getElementById('clear-all-data-btn').addEventListener('click', () => {
     portfolio = []; // Clear portfolio array
     totalDividends = 0; // Reset total dividends
     renderPortfolio(); // Re-render portfolio to reflect the cleared state
-    dividendChart.data.labels = []; // Clear chart labels
-    dividendChart.data.datasets[0].data = []; // Clear chart data
-    dividendChart.update(); // Refresh the chart
-    refreshCalendar(); // Clear the calendar
   }
 });
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// STOCK DIVIDEND DETAIL FUNCTIONS
+// API KEY FUNCTIONS
 
 
-// Function to clear the stock data from localStorage
-const clearStockData = () => {
-  // Remove the 'data' object from localStorage
-  localStorage.removeItem('data');
-};
+// Add an event listener to the "Set API Key" button
+document.getElementById('setApiKeyButton').addEventListener('click', updateApiKeyFromInput);
 
-// Fetch detailed stock data
-const fetchStockDetails = async () => {
-  const tickerInput = document.getElementById('stock-ticker-input');
-  const ticker = tickerInput.value.trim().toUpperCase(); // Ensure ticker is uppercase
+// Function to update the apiKey when the "Set" button is clicked
+function updateApiKeyFromInput() {
+  const apiKeyInput = document.getElementById('api-key-input');  // Get the input element
+  apiKey = apiKeyInput.value.trim();  // Get the value from the input and set it to apiKey variable
+  // Check if the API key is not empty
+  if (apiKey !== '') {
+    // Save the API key to localStorage
+    localStorage.setItem('apiKey', apiKey);
 
-  if (!ticker) {
-    alert('Please enter a stock ticker.');
-    return;
-  }
+    // Clear the input field
+    apiKeyInput.value = '';
 
-  // Set the ticker in the top-left grid cell
-  const gridTickerCell = document.querySelector('.stock-details-grid .ticker');
-  gridTickerCell.textContent = ticker;
+    // Show the success alert
+    alert('API Key successfully set!');
 
-  // Retrieve the portfolio from localStorage
-  const portfolio = JSON.parse(localStorage.getItem('portfolio'));
-
-  if (!portfolio) {
-    alert('No portfolio found in localStorage.');
-    return;
-  }
-
-  // Find the stock in the portfolio
-  const stock = portfolio.find((stock) => stock.stockName === ticker);
-
-  if (stock) {
-    console.log('Stock found in localStorage:', stock);
-
-    // Check if the stock has the new latest/previous structure
-    const stockData = JSON.parse(localStorage.getItem('data'))[ticker] || {};
-    const latest = stockData.latest || {};
-    const previous = stockData.previous || {};
-
-    // Populate the stock details section
-    document.getElementById('recentExDividendDate').textContent = formatDate(latest.exDividendDate) || 'N/A';
-    document.getElementById('recentDeclarationDate').textContent = formatDate(latest.declarationDate) || 'N/A';
-    document.getElementById('recentRecordDate').textContent = formatDate(latest.recordDate) || 'N/A';
-    document.getElementById('recentPaymentDate').textContent = formatDate(latest.paymentDate) || 'N/A';
-    document.getElementById('recentDividendAmount').textContent = `$${parseFloat(latest.dividend || 0).toFixed(4)}` || '$0.00';
-
-    // Populate previous details
-    document.getElementById('previousExDividendDate').textContent = formatDate(previous.exDividendDate) || 'N/A';
-    document.getElementById('previousDeclarationDate').textContent = formatDate(previous.declarationDate) || 'N/A';
-    document.getElementById('previousRecordDate').textContent = formatDate(previous.recordDate) || 'N/A';
-    document.getElementById('previousPaymentDate').textContent = formatDate(previous.paymentDate) || 'N/A';
-    document.getElementById('previousDividendAmount').textContent = `$${parseFloat(previous.dividend || 0).toFixed(4)}`;
+    console.log('API Key set:', apiKey);  // For debugging, you can see the new API key in the console
   } else {
-    console.log('Stock not found in portfolio.');
-
-    // Reset the grid when stock isn't found
-    gridTickerCell.textContent = ''; // Clear ticker in the top-left grid cell
-
-    // Clear all stock details cells
-    const fields = [
-      'recentExDividendDate', 'recentDeclarationDate', 'recentRecordDate', 'recentPaymentDate', 'recentDividendAmount',
-      'previousExDividendDate', 'previousDeclarationDate', 'previousRecordDate', 'previousPaymentDate', 'previousDividendAmount',
-    ];
-    fields.forEach((field) => {
-      document.getElementById(field).textContent = field.includes('Amount') ? '$0.0000' : 'N/A';
-    });
-
-    // Alert the user
-    alert('Stock not found in portfolio.');
+    // If the input field is empty, show an error alert
+    alert('Please enter a valid API Key.');
   }
+}
 
-  // Clear the input field and show the placeholder
-  tickerInput.value = '';
-};
+// Function to load API key from localStorage on page load
+function loadApiKeyFromLocalStorage() {
+  const storedApiKey = localStorage.getItem('apiKey');  // Retrieve the stored API key
+
+  if (storedApiKey) {
+      apiKey = storedApiKey;  // Set the apiKey variable to the stored value
+      console.log('Loaded API Key from localStorage:', apiKey);  // For debugging
+  }
+}
+
+// Call the function to load the API key when the page loads
+window.onload = loadApiKeyFromLocalStorage;
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -349,19 +316,22 @@ form.addEventListener('submit', (e) => {
     0
   );
 
-  // Re-render the portfolio table and update the chart
+  // Re-render the portfolio table
   renderPortfolio();
-  updateChart();
 
   // Reset the form and the fetched data
   form.reset();
   fetchedDividendData = null;
 
-  // Refresh the calendar
-  refreshCalendar();
+  // Disable dividend input and payment date input if in API mode
+  if (!isManualEntry) {
+    dividendInput.disabled = true;
+    paymentDateInput.disabled = true;
+  };
+
 });
 
-// Fetch API data
+// Fetching API data
 const fetchDividend = async (ticker) => {
   const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
   try {
@@ -443,6 +413,7 @@ document.getElementById('stock-name').addEventListener('blur', async (e) => {
       dividendInput.placeholder = 'Enter Dividend:';
       paymentDateInput.disabled = false;
       paymentDateInput.placeholder = ' ';
+      console.log('Manual entry mode is enabled.');
     }
   }
 
@@ -462,8 +433,6 @@ const fetchAllDividends = async (ticker) => {
     const data = await response.json().catch(() => null);
 
     if (!data || data.Information) {
-      console.warn('API Rate Limit reached or Error:', data ? data.Information : 'Unknown Error');
-      alert('API rate limit reached. Please try again later or upgrade to a premium plan.');
       return null;
     }
 
@@ -591,7 +560,7 @@ const renderPortfolio = () => {
 
   // Highlight row with payment date two months ago
   highlightOldStock();
-  console.log('Old Row Highlighted'); // Console Log Action
+  console.log('Old Rows Highlighted'); // Console Log Action
 };
 
 // Function to highlight the stock row with payment date 2 and 3 months ago
@@ -695,13 +664,11 @@ window.updateStock = (index, field, value) => {
   // Recalculate the full dividend for the stock
   totalDividends += stock.stockAmount * stock.stockDividend;
 
+  console.log("Stock value manually updated.");
   renderPortfolio();
-  updateChart();
-  // Refresh the calendar to reflect the new stock's dividend data
-  refreshCalendar();
 };
 
-// Remove stock from portfolio and data object
+// Remove stock from portfolio, dividendHistory, and data objects
 window.removeStock = (index) => {
   const stock = portfolio.splice(index, 1)[0];
   totalDividends -= stock.stockAmount * stock.stockDividend;
@@ -715,12 +682,20 @@ window.removeStock = (index) => {
   // Save the updated 'data' object back to localStorage
   localStorage.setItem('data', JSON.stringify(existingData));
 
-  // Re-render the portfolio table and update the chart
-  renderPortfolio();
-  updateChart();
+  // Remove the corresponding entry from the 'dividendHistory' object in localStorage
+  let existingData2 = JSON.parse(localStorage.getItem('dividendHistory')) || {};
+  
+  // Delete the stock data by ticker symbol
+  delete existingData2[stock.stockName];
 
-  // Refresh the calendar to reflect the removed stock's dividend data
-  refreshCalendar();
+  // Save the updated 'dividendHistory' object back to localStorage
+  localStorage.setItem('dividendHistory', JSON.stringify(existingData2));
+
+  
+  
+  
+  // Re-render the portfolio table
+  renderPortfolio();
 };
 
 // Refetch dividend
@@ -816,9 +791,8 @@ window.refetchDividend = async (index) => {
       0
     );
 
-    // Re-render the portfolio table and update the chart
+    // Re-render the portfolio table
     renderPortfolio();
-    updateChart();
 
   } catch (error) {
     console.error(`Error refetching dividend for ${stock.stockName}:`, error);
@@ -830,9 +804,6 @@ window.refetchDividend = async (index) => {
   // Resave Stock to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
   console.log('Stock Saved to Local Storage'); // Console Log Action
-
-  // Refresh the calendar to reflect the new stock's dividend data
-  refreshCalendar();
 };
 
 // Load portfolio from localStorage if available
@@ -842,49 +813,5 @@ document.addEventListener('DOMContentLoaded', () => {
     portfolio = JSON.parse(savedPortfolio);
     totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * stock.stockDividend, 0);
     renderPortfolio();
-    // updateChart();
   }
 });
-
-
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// API KEY FUNCTIONS
-
-
-// Add an event listener to the "Set API Key" button
-document.getElementById('setApiKeyButton').addEventListener('click', updateApiKeyFromInput);
-
-// Function to update the apiKey when the "Set" button is clicked
-function updateApiKeyFromInput() {
-  const apiKeyInput = document.getElementById('api-key-input');  // Get the input element
-  apiKey = apiKeyInput.value.trim();  // Get the value from the input and set it to apiKey variable
-  // Check if the API key is not empty
-  if (apiKey !== '') {
-    // Save the API key to localStorage
-    localStorage.setItem('apiKey', apiKey);
-
-    // Clear the input field
-    apiKeyInput.value = '';
-
-    // Show the success alert
-    alert('API Key successfully set!');
-
-    console.log('API Key set:', apiKey);  // For debugging, you can see the new API key in the console
-  } else {
-    // If the input field is empty, show an error alert
-    alert('Please enter a valid API Key.');
-  }
-}
-
-// Function to load API key from localStorage on page load
-function loadApiKeyFromLocalStorage() {
-  const storedApiKey = localStorage.getItem('apiKey');  // Retrieve the stored API key
-
-  if (storedApiKey) {
-      apiKey = storedApiKey;  // Set the apiKey variable to the stored value
-      console.log('Loaded API Key from localStorage:', apiKey);  // For debugging
-  }
-}
-
-// Call the function to load the API key when the page loads
-window.onload = loadApiKeyFromLocalStorage;

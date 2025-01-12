@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chart Data</title>
+    <title>Dividend Portfolio Tracker</title>
     <link rel="stylesheet" href="./chart.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
+    <div class="page-links">
+        <ul>
+            <li><a href="../index.html">Portfolio</a></li>
+            <li class="placeholder"><a href="">N/A</a></li>
+            <li class="placeholder"><a href="">N/A</a></li>
+            <li class="placeholder"><a href="">N/A</a></li>
+        </ul>
+    </div>
     <header>
         <h1>Dividend Portfolio Tracker</h1>
         
@@ -16,11 +24,6 @@
             <button id="save-all-data-btn">Save Data</button>
             <button id="load-all-data-btn">Load Data</button>
             <input type="file" id="file-input" accept=".json" style="display: none;">
-        </div>
-        <div class="page-links">
-            <ul>
-                <li><a href="../index.html">Portfolio</a></li>
-            </ul>
         </div>
     </header>
 
@@ -37,6 +40,11 @@
                     <span id="month-year" class="subheading"></span>
                     <span id="total-month-dividends" class="subheading"></span>
                 </div>
+                <div id="calendar-controls">
+                    <button id="prev-month">Last Month</button>
+                    <button id="current-month">Current Month</button>
+                    <button id="next-month">Next Month</button>
+                  </div>
                 <div id="calendar"></div>
             </div>
 
