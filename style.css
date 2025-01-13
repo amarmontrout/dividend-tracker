@@ -578,7 +578,7 @@ canvas {
 }
 
 /*iPhone 14 Pro Max - Vertical*/
-@media (width: 430px) {
+@media (width < 431px) {
 
   body {
     font-family: Arial, sans-serif;
