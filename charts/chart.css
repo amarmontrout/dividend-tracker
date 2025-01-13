@@ -14,7 +14,7 @@ body {
     padding-top: 100px;
     color: #C5A800;
     padding: 10px;
-    padding-top: 40px;
+    padding-top: 100px;
     text-align: center;
   }
   
@@ -68,19 +68,21 @@ body {
 
   ul {
     display: flex;
-  list-style: none;
-  justify-content: center;
-  width: 100vw;
-  gap: 5px;
-  align-items: center;
-  margin-block-start: 0;
-  margin-block-end: 0;
-  padding-left: 0;
+    list-style: none;
+    justify-content: center;
+    width: 100vw;
+    height: 90px;
+    gap: 10px;
+    align-items: center;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    padding-left: 0;
   }
 
   li {
     border: 1px solid black;
-    height: 18px;
+    height: 50px;
+    width: 50px;
     background-color: #003600;
     border-radius: 5px;
     font-size: 1rem;
@@ -119,8 +121,8 @@ body {
 
   .page-links {
     position: fixed;
-    height: 30px;
-    background-color: #003600;
+    height: 90px;
+    background-color: #004d00;
     z-index: 1;
   }
   
@@ -379,7 +381,6 @@ body {
     header {
       width: 410px;
       padding: 10px;
-      padding-top: 40px;
     }
   
     header button, header li {
@@ -394,12 +395,38 @@ body {
       padding-top: 1rem;
       padding-left: 11px;
       padding-right: 11px;
-      padding-bottom: 11px;
+      padding-bottom: 101px;
       width: 95%;
     }
 
     .page-title {
       margin-bottom: 0;
+    }
+
+    .page-links {
+      position: fixed;
+      bottom: 0;
+      height: 90px;
+      background-color: #004d00;
+      z-index: 1;
+    }
+  
+    ul {
+      display: flex;
+      list-style: none;
+      justify-content: space-around;
+      width: 100vw;
+      height: 90px;
+    }
+    
+    li {
+      border: none;
+      border-radius: 0px;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      box-shadow: none;
+      background-color: #004d00;
     }
     
     #calendar div {
@@ -529,7 +556,6 @@ body {
   
     header {
       padding: 10px;
-      padding-top: 40px;
     }
   
     header button {
@@ -543,12 +569,38 @@ body {
       padding-top: 1rem;
       padding-left: 11px;
       padding-right: 11px;
-      padding-bottom: 11px;
+      padding-bottom: 101px;
       width: 95%;
     }
 
     .page-title {
       margin-bottom: 0;
+    }
+
+    .page-links {
+      position: fixed;
+      bottom: 0;
+      height: 90px;
+      background-color: #004d00;
+      z-index: 1;
+    }
+  
+    ul {
+      display: flex;
+      list-style: none;
+      justify-content: space-around;
+      width: 100vw;
+      height: 90px;
+    }
+    
+    li {
+      border: none;
+      border-radius: 0px;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      box-shadow: none;
+      background-color: #004d00;
     }
     
     #calendar div {
@@ -659,6 +711,74 @@ body {
     #api-key-input {
       padding: 0.4rem;
       width: 25%;
+    }
+  
+  }
+
+  @media (width < 345px) {
+
+    body {
+      width: 100vw;
+    }
+
+    #calendar div {
+      text-align: center;
+      background-color: lightgrey;
+      font-weight: bold;
+      position: relative; /* For absolute positioning of dividend totals */
+      border-radius: 5px;
+      padding: 2px;
+    }
+  
+    #calendar .day-header {
+      font-size: 15px;
+      width: 1.85rem;
+      padding: 5px;
+    }
+  
+    #calendar .dividend-total {
+      position: relative;
+      top: 13px;
+      font-size: .75em;
+      text-align: center;
+      background-color: #C5A800;
+      padding: 1px 1px;
+      border-radius: 5px;
+      color: #000;
+    }
+  
+    .day {
+      position: relative;
+      display: inline-block;
+      height: 50px; /* Adjust as needed */
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      vertical-align: top;
+      box-sizing: border-box;
+      overflow: hidden; /* Prevent content from spilling outside */
+    }
+
+    .stock-label {
+      font-weight: bold;
+      font-size: .68rem;
+      padding: 5px;
+      text-align: right;
+      background-color: #003600;
+      color: #F0F0F0;
+    }
+  
+    .stock-details-grid {
+      overflow: hidden;
+    }
+  
+    .stock-label-center {
+      font-weight: bold;
+      font-size: .68rem;
+      padding: 5px;
+      text-align: center;
+      color: #F0F0F0;
+      background-color: #003600;
     }
   
   }

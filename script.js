@@ -12,6 +12,10 @@ let isManualEntry = false; // Track the current mode (false = API, true = Manual
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // MISC FUNCTIONS
 
+const saveTotalDividends = (totalDividends) => {
+  // Shared data for growth chart
+  localStorage.setItem('sharedData', totalDividends);
+};
 
 // Helper function to format date
 const formatDate = (dateString) => {
@@ -25,14 +29,6 @@ const formatDate = (dateString) => {
 
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
-
-// Display alert for placeholder elements
-const placeholders = document.getElementsByClassName("placeholder");
-Array.from(placeholders).forEach(element => {
-  element.addEventListener('click', () => {
-    alert("This is a placeholder.");
-  });
-});
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -189,6 +185,111 @@ window.onload = loadApiKeyFromLocalStorage;
 
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// FETCH TICKER OVERVIEW DATA FUNCTIONS
+
+
+const fetchOverview = async (ticker) => {
+  const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`;
+  try {
+    const response = await fetch(url);
+    console.log(`${ticker} overview has been fetched using API key: ${apiKey}`);
+
+    // Check if the response is JSON or plain text
+    const data = await response.json().catch(() => null);
+
+    console.log('API Response:', data);
+
+
+    if (!data || data.Information) {
+      return null;
+    }
+
+    // Ensure the `ticker` is passed and used properly
+    if (!ticker) {
+      console.error('Ticker is undefined. Please provide a valid ticker symbol.');
+      return;
+    }
+
+    // Process API response data
+    const parsedData = {
+      name: data.Name,
+      description: data.Description,
+      sector: data.Sector,
+      marketCap: data.MarketCapitalization,
+      peRatio: data.PERatio,
+      dividendPerShare: data.DividendPerShare,
+      dividendYield: data.DividendYield,
+      eps: data.EPS,
+      analystTargetPrice: data.AnalystTargetPrice,
+      beta: data.Beta,
+      yearHigh: data["52WeekHigh"],
+      yearLow: data["52WeekLow"],
+      fiftyDMA: data["50DayMovingAverage"],
+      twoHundredDMA: data["200DayMovingAverage"],
+      exDividendDate: data.ExDividendDate,
+      dividendDate: data.DividendDate,
+    };
+
+    // Save parsedData to local storage function call
+    saveOverviewToLocalStorage('overviewData', ticker, parsedData);
+
+    console.log(parsedData);
+  } catch (error) {
+    console.error('Error fetching overview data:', error);
+  }
+
+  return null;
+};
+
+// Function to save parsed data to localStorage
+const saveOverviewToLocalStorage = (key, ticker, newData) => {
+
+  if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
+    console.error('Invalid ticker provided:', ticker);
+    return;
+  }
+
+  // Get the existing data from localStorage, or initialize it if not available
+  const storedData = JSON.parse(localStorage.getItem(key)) || {};
+
+  // Check if the ticker already exists in localStorage
+  if (storedData[ticker]) {
+    const storedTickerData = storedData[ticker];
+
+    // Check if the data has changed
+    const hasChanges = Object.keys(newData).some(
+      (field) => newData[field] !== storedTickerData[field]
+    );
+
+    if (!hasChanges) {
+      console.log(`${ticker} data is already up to date.`);
+      return; // Do nothing if there are no changes
+    } else {
+      console.log(`${ticker} data has changed. Updating.`);
+    }
+  } else {
+    console.log(`No data found for ${ticker}. Adding new data.`);
+  }
+
+  // Add or update the ticker data in the stored data
+  storedData[ticker] = newData;
+
+  // Sort the stored tickers alphabetically by their keys (ticker symbols)
+  const sortedStoredData = Object.keys(storedData)
+    .sort() // Sort the keys alphabetically
+    .reduce((obj, key) => {
+      obj[key] = storedData[key]; // Rebuild the object in sorted order
+      return obj;
+    }, {});
+
+  // Save the updated object back to localStorage
+  localStorage.setItem(key, JSON.stringify(sortedStoredData));
+
+  console.log(`Data for ${ticker} has been saved to localStorage.`);
+};
+
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // ADD STOCK FUNCTIONS
 
 
@@ -245,6 +346,10 @@ form.addEventListener('submit', (e) => {
 
   // Call function to get full dividend history
   fetchAllDividends(stockName);
+
+  console.log(stockName);
+  // Call function to get company overview
+  fetchOverview(stockName);
 
   // Validate inputs
   if (!stockAmount || isNaN(stockAmount)) {
@@ -326,7 +431,9 @@ form.addEventListener('submit', (e) => {
   // Disable dividend input and payment date input if in API mode
   if (!isManualEntry) {
     dividendInput.disabled = true;
+    dividendInput.placeholder = 'API Fetch';
     paymentDateInput.disabled = true;
+    paymentDateInput.placeholder = ' ';
   };
 
 });
@@ -449,9 +556,6 @@ const fetchAllDividends = async (ticker) => {
         exDividendDates.push(exDate); // Store the ex_dividend_date
       }
 
-      console.log("All Dividend Amounts:", dividendHistory);
-      console.log("All Ex-Dividend Dates:", exDividendDates);
-
       // Now save this dividend history to localStorage
       saveDividendHistoryToLocalStorage(ticker, dividendHistory, exDividendDates);
 
@@ -526,6 +630,78 @@ const saveDividendHistoryToLocalStorage = (ticker, dividendHistory, exDividendDa
 // MY PORTFOLIO FUNCTIONS
 
 
+// Function to display data on stcok
+const displayStockData = (stockName) => {
+  // Fetch data from localStorage
+  const overviewData = JSON.parse(localStorage.getItem('overviewData')) || {};
+  const stockData = overviewData[stockName];
+
+  if (!stockData) {
+    alert(`Overview data not stored for ${stockName} yet. Try refetching to pull new data.`);
+    return;
+  }
+
+  // Create or show a pop-up/modal
+  const popup = document.createElement('div');
+  popup.id = 'stock-popup';
+
+  // Disable page scrolling
+  document.body.classList.add('no-scroll');
+
+  popup.innerHTML = `
+  
+    <div id="overview-top">
+      <h1>${stockName}</h1>
+      <button onclick="closePopup()">Close</button>
+    </div>
+
+    <div id="overview-header" class="module-styling">
+      <h2>${stockData.name || stockName}</h2>
+      <p>${stockData.sector || 'N/A'}</p>
+    </div>
+
+    <div id="overview-description" class="module-styling">
+      <p>${stockData.description || 'N/A'}</p>
+    </div>
+
+    <div id="overview-details" class="module-styling">
+      <p><strong>Market Cap:</strong> ${stockData.marketCap ? '$' + Number(stockData.marketCap).toLocaleString() : 'N/A'}</p>
+      <p><strong>Analyst Target Price:</strong> $${stockData.analystTargetPrice || 'N/A'}</p>
+      <p><strong>Beta:</strong> ${stockData.beta || 'N/A'}</p>
+    </div>
+
+    <div id="overview-dividend" class="module-styling">
+      <p><strong>Annual Dividend Per Share:</strong> $${stockData.dividendPerShare || 'N/A'}</p>
+      <p><strong>Dividend Yield:</strong> ${stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) : 'N/A'}%</p>
+    </div>
+
+    <div id="overview-financials" class="module-styling">
+      <p><strong>Earnings Per Share:</strong> $${stockData.eps || 'N/A'}</p>
+      <p><strong>Price/Earnings Ratio:</strong> ${stockData.peRatio || 'N/A'}</p>
+    </div>
+
+    <div id="overview-averages" class="module-styling">
+      <p><strong>50 Day Moving Average:</strong> $${stockData.fiftyDMA || 'N/A'}</p>
+      <p><strong>200 Day Moving Average:</strong> $${stockData.twoHundredDMA || 'N/A'}</p>
+    </div>
+
+    <div id="overview-highlow" class="module-styling">
+      <p><strong>52 Week High:</strong> $${stockData.yearHigh || 'N/A'}</p>
+      <p><strong>52 Week Low:</strong> $${stockData.yearLow || 'N/A'}</p>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+};
+
+// Function to close data popup
+const closePopup = () => {
+  const popup = document.getElementById('stock-popup');
+  // Enable page scrolling
+  document.body.classList.remove('no-scroll');
+  if (popup) popup.remove();
+};
+
 // Render portfolio table
 const renderPortfolio = () => {
   // Sort portfolio by stock name alphabetically
@@ -540,7 +716,7 @@ const renderPortfolio = () => {
     const row = document.createElement('tr');
     row.id = `stock-${index}`;  // Add a unique ID to each row
     row.innerHTML = `
-      <td>${stock.stockName}</td>
+      <td id="${stock.stockName}" class="stock-name-cell">${stock.stockName}</td>
       <td contenteditable="true" onblur="updateStock(${index}, 'amount', this.textContent)">${parseFloat(stock.stockAmount).toFixed(4)}</td> <!-- Ensure 4 decimal places -->
       <td contenteditable="true" onblur="updateStock(${index}, 'dividend', this.textContent)">${parseFloat(stock.stockDividend).toFixed(4)}</td> <!-- Display dividend with 4 decimals -->
       <td id="full-dividend-${index}">$${fullDividend}</td> <!-- Display full dividend -->
@@ -549,10 +725,13 @@ const renderPortfolio = () => {
       <td><button onclick="removeStock(${index})" class="portfolio-rm-btn" ><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/></svg></button></td>
     `;
     portfolioTable.appendChild(row);
+    // Add a click event listener to the stock name cell
+    row.querySelector('.stock-name-cell').addEventListener('click', () => displayStockData(stock.stockName));
   });
   console.log('Table Rendered'); // Console Log Action
 
   totalPaymentElement.textContent = totalDividends.toFixed(2);
+  saveTotalDividends(totalDividends.toFixed(2));
 
   // Save portfolio to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
@@ -675,25 +854,25 @@ window.removeStock = (index) => {
 
   // Remove the corresponding entry from the 'data' object in localStorage
   let existingData = JSON.parse(localStorage.getItem('data')) || {};
-  
   // Delete the stock data by ticker symbol
   delete existingData[stock.stockName];
-
   // Save the updated 'data' object back to localStorage
   localStorage.setItem('data', JSON.stringify(existingData));
 
   // Remove the corresponding entry from the 'dividendHistory' object in localStorage
   let existingData2 = JSON.parse(localStorage.getItem('dividendHistory')) || {};
-  
   // Delete the stock data by ticker symbol
   delete existingData2[stock.stockName];
-
   // Save the updated 'dividendHistory' object back to localStorage
   localStorage.setItem('dividendHistory', JSON.stringify(existingData2));
 
-  
-  
-  
+  // Remove the corresponding entry from the 'overviewData' object in localStorage
+  let existingData3 = JSON.parse(localStorage.getItem('overviewData')) || {};
+  // Delete the stock data by ticker symbol
+  delete existingData3[stock.stockName];
+  // Save the updated 'overviewData' object back to localStorage
+  localStorage.setItem('overviewData', JSON.stringify(existingData3));
+
   // Re-render the portfolio table
   renderPortfolio();
 };
@@ -708,6 +887,9 @@ window.refetchDividend = async (index) => {
 
   // Call function to get full dividend amount history
   fetchAllDividends(stock.stockName);
+
+  // Call function to get company overview
+  fetchOverview(stock.stockName);
 
   try {
     // Fetch new dividend data

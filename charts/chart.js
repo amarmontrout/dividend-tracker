@@ -346,7 +346,6 @@ const fetchStockDetails = async () => {
   const stock = portfolio.find((stock) => stock.stockName === ticker);
 
   if (stock) {
-    console.log('Stock found in localStorage:', stock);
 
     // Check if the stock has the new latest/previous structure
     const stockData = JSON.parse(localStorage.getItem('data'))[ticker] || {};
@@ -367,7 +366,7 @@ const fetchStockDetails = async () => {
     document.getElementById('previousPaymentDate').textContent = formatDate(previous.paymentDate) || 'N/A';
     document.getElementById('previousDividendAmount').textContent = `$${parseFloat(previous.dividend || 0).toFixed(4)}`;
   } else {
-    console.log('Stock not found in portfolio.');
+    console.log(`${ticker} not found in portfolio.`);
 
     // Reset the grid when stock isn't found
     gridTickerCell.textContent = ''; // Clear ticker in the top-left grid cell
@@ -382,7 +381,7 @@ const fetchStockDetails = async () => {
     });
 
     // Alert the user
-    alert('Stock not found in portfolio.');
+    alert(`${ticker} not found in portfolio.`);
   }
 
   // Clear the input field and show the placeholder
@@ -432,39 +431,54 @@ document.getElementById("get-dividend-history-btn").addEventListener("click", ()
   const tickerInputField = document.getElementById("history-ticker-input"); // Input field element
   const tickerInput = document.getElementById("history-ticker-input").value.trim().toUpperCase(); // Get input and convert to uppercase
   const storedHistory = JSON.parse(localStorage.getItem("dividendHistory")) || {}; // Fetch stored history
+  const portfolioData = JSON.parse(localStorage.getItem("portfolio")) || {};
+  let portfolio = [];
 
-  if (!storedHistory[tickerInput]) {
-    alert("This ticker is not in your portfolio.");
-    return;
-  }
+  portfolioData.forEach((stock) => {
+    ticker = stock.stockName;
+    portfolio.push(ticker);
+  });
 
-  const tickerData = storedHistory[tickerInput];
-  const amountData = tickerData.Amount;
-  const dateData = tickerData.ExDate;
-
-  const dataLength = Object.keys(amountData).length;
-
-  // Extract the dividend amounts and dates for plotting
-  const dividendAmounts = [];
-  const exDividendDates = [];
-
-  for (let i = 0; i < dataLength; i++) {
-    dividendAmounts.push(amountData[i]);
-    exDividendDates.push(dateData[i]);
-  }
-
-  // Reverse the order of the data and labels
-  const reversedAmounts = dividendAmounts.reverse();
-  const reversedDates = exDividendDates.reverse();
-
-  // Update the chart with new data
-  historyChart.data.labels = exDividendDates; // Use dates as labels
-  historyChart.data.datasets[0].data = dividendAmounts; // Use dividend amounts as data
-  historyChart.data.datasets[0].label = `${tickerInput} Dividend History`;
-  historyChart.update();
-
-  // Clear the input field and show the placeholder
-  tickerInputField.value = '';
+  // Check if tickerInput is in the portfolio
+  const isTickerInPortfolio = portfolioData.some(stock => stock.stockName === tickerInput);
+  
+  if (!isTickerInPortfolio) {
+    alert(`${tickerInput} is not in your portfolio.`);
+  } else {
+    if (!storedHistory[tickerInput]) {
+      alert(`${tickerInput} is in your portfolio, but it doesnt have history data yet. Try refetching to pull new data.`);
+      return;
+    } else {
+      const tickerData = storedHistory[tickerInput];
+      const amountData = tickerData.Amount;
+      const dateData = tickerData.ExDate;
+  
+      const dataLength = Object.keys(amountData).length;
+  
+      // Extract the dividend amounts and dates for plotting
+      const dividendAmounts = [];
+      const exDividendDates = [];
+  
+      for (let i = 0; i < dataLength; i++) {
+        dividendAmounts.push(amountData[i]);
+        exDividendDates.push(dateData[i]);
+      }
+  
+      // Reverse the order of the data and labels
+      const reversedAmounts = dividendAmounts.reverse();
+      const reversedDates = exDividendDates.reverse();
+  
+      // Update the chart with new data
+      historyChart.data.labels = exDividendDates; // Use dates as labels
+      historyChart.data.datasets[0].data = dividendAmounts; // Use dividend amounts as data
+      historyChart.data.datasets[0].label = `${tickerInput} Dividend History`;
+      historyChart.update();
+  
+      // Clear the input field and show the placeholder
+      tickerInputField.value = '';
+  
+    };
+  };
 });
 
 
@@ -524,25 +538,40 @@ const updateChart = () => {
   const today = new Date();
   const localDate = today.toLocaleDateString('en-CA'); // YYYY-MM-DD format
   
-  const index = dividendChart.data.labels.indexOf(localDate);
+  // Get the totalDividends value, and convert it to a float
+  const totalDividends = parseFloat(localStorage.getItem('sharedData')); 
 
-  const roundedTotalDividends = Math.round(totalDividends * 100) / 100;
+  // If 'sharedData' is not a valid number, return early
+  if (isNaN(totalDividends)) {
+    console.warn('Invalid totalDividends value.');
+    return;
+  }
+
+  const chartData = JSON.parse(localStorage.getItem('chartData')) || { labels: [], data: [] }; // Get chartData or initialize if not found
+  
+  const index = chartData.labels.indexOf(localDate);  // Check if the date already exists in the labels
 
   if (index !== -1) {
     // Update the Y-axis value for the current date
-    dividendChart.data.datasets[0].data[index] = roundedTotalDividends;
+    chartData.data[index] = totalDividends;
   } else {
     // Add a new point for today's date
-    dividendChart.data.labels.push(localDate);
-    dividendChart.data.datasets[0].data.push(roundedTotalDividends);
+    chartData.labels.push(localDate);
+    chartData.data.push(totalDividends);
   }
 
-  dividendChart.update();
+  // Save the updated chart data back to localStorage
+  localStorage.setItem('chartData', JSON.stringify(chartData));
+
+  // Update the chart with the new data
+  dividendChart.data.labels = chartData.labels;
+  dividendChart.data.datasets[0].data = chartData.data;
+
+  dividendChart.update();  // Update the chart
   console.log('Chart Point Set');
 };
 
 // Button to set a new data point when clicked
 document.getElementById('set-dividend-btn').addEventListener('click', () => {
   updateChart(); // Update the chart with the current total dividends
-  saveChartData(); // Save the updated chart data to localStorage
 });
