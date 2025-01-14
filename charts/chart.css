@@ -276,17 +276,28 @@ body {
     justify-content: space-around;
     align-items: center;
   }
+
+  .day-header {
+    background-color: #003600;
+    color: #F0F0F0;
+    padding: 5px;
+    text-align: center;
+    font-weight: bold;
+    position: relative; /* For absolute positioning of dividend totals */
+    border-radius: 5px;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+  }
   
   #calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 5px;
-    margin-top: 5px;
+    margin-top: 15px;
     font-size: 1.2rem;
     position: relative;
   }
   
-  #calendar div {
+  .empty-day, .day {
     padding: 5px;
     text-align: center;
     background-color: lightgrey;
@@ -431,7 +442,6 @@ body {
     
     #calendar div {
       text-align: center;
-      background-color: lightgrey;
       font-weight: bold;
       position: relative; /* For absolute positioning of dividend totals */
       border-radius: 5px;
@@ -442,6 +452,7 @@ body {
       font-size: 15px;
       width: 2.5rem;
       padding: 5px;
+      background-color: #003600;
     }
   
     #calendar .emptyCell {
@@ -605,7 +616,6 @@ body {
     
     #calendar div {
       text-align: center;
-      background-color: lightgrey;
       font-weight: bold;
       position: relative; /* For absolute positioning of dividend totals */
       border-radius: 5px;
@@ -711,74 +721,6 @@ body {
     #api-key-input {
       padding: 0.4rem;
       width: 25%;
-    }
-  
-  }
-
-  @media (width < 345px) {
-
-    body {
-      width: 100vw;
-    }
-
-    #calendar div {
-      text-align: center;
-      background-color: lightgrey;
-      font-weight: bold;
-      position: relative; /* For absolute positioning of dividend totals */
-      border-radius: 5px;
-      padding: 2px;
-    }
-  
-    #calendar .day-header {
-      font-size: 15px;
-      width: 1.85rem;
-      padding: 5px;
-    }
-  
-    #calendar .dividend-total {
-      position: relative;
-      top: 13px;
-      font-size: .75em;
-      text-align: center;
-      background-color: #C5A800;
-      padding: 1px 1px;
-      border-radius: 5px;
-      color: #000;
-    }
-  
-    .day {
-      position: relative;
-      display: inline-block;
-      height: 50px; /* Adjust as needed */
-      text-align: center;
-      font-size: 13px;
-      font-weight: bold;
-      vertical-align: top;
-      box-sizing: border-box;
-      overflow: hidden; /* Prevent content from spilling outside */
-    }
-
-    .stock-label {
-      font-weight: bold;
-      font-size: .68rem;
-      padding: 5px;
-      text-align: right;
-      background-color: #003600;
-      color: #F0F0F0;
-    }
-  
-    .stock-details-grid {
-      overflow: hidden;
-    }
-  
-    .stock-label-center {
-      font-weight: bold;
-      font-size: .68rem;
-      padding: 5px;
-      text-align: center;
-      color: #F0F0F0;
-      background-color: #003600;
     }
   
   }
