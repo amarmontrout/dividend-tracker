@@ -25,14 +25,6 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// Display alert for placeholder elements
-const placeholders = document.getElementsByClassName("placeholder");
-Array.from(placeholders).forEach(element => {
-  element.addEventListener('click', () => {
-    alert("This is a placeholder.");
-  });
-});
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE AND LOAD BUTTONS
