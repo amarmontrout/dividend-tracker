@@ -11,7 +11,6 @@ let displayedYear = new Date().getFullYear();
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // MISC FUNCTIONS
 
-
 // Helper function to format date
 const formatDate = (dateString) => {
   if (!dateString || dateString === 'N/A') return 'N/A'; // Handle empty or invalid dates
@@ -25,118 +24,90 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE AND LOAD BUTTONS
 
+document.addEventListener('click', (event) => {
+  const elementId = event.target.id;
 
-// Save all local storage data as a single JSON file
-document.getElementById('save-all-data-btn').addEventListener('click', () => {
-  // Create an object to store all local storage data
-  const allData = {};
+  if (elementId === 'save-all-data-btn') {
+    // Save all local storage data as a single JSON file
+    const allData = {};
+    const excludedKeys = ["ally-supports-cache"];
 
-  // Loop through all keys in localStorage and add them to the allData object
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    const value = localStorage.getItem(key);
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (excludedKeys.includes(key)) continue;
 
-    try {
-      // Try to parse the value to handle any stored objects
-      allData[key] = JSON.parse(value);
-    } catch (error) {
-      // If parsing fails (not valid JSON), store the value as is
-      allData[key] = value;
+      const value = localStorage.getItem(key);
+      try {
+        allData[key] = JSON.parse(value);
+      } catch (error) {
+        allData[key] = value;
+      }
     }
-  }
 
-  // Convert allData object to a JSON string
-  const allDataJSON = JSON.stringify(allData, null, 2);
+    const allDataJSON = JSON.stringify(allData, null, 2);
+    const blob = new Blob([allDataJSON], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'all-data.json';
+    link.click();
 
-  // Create a Blob from the JSON string
-  const blob = new Blob([allDataJSON], { type: 'application/json' });
+    console.log('All local storage data saved as all-data.json');
+    alert('All Data Has Been Saved.');
 
-  // Create a download link
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'all-data.json'; // File name for the download
+  } else if (elementId === 'load-all-data-btn') {
+    // Load all data from a JSON file and restore to localStorage
+    const fileInput = document.getElementById('file-input');
+    fileInput.click();
 
-  // Trigger the download
-  link.click();
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file && file.type === 'application/json') {
+        const reader = new FileReader();
 
-  console.log('All local storage data saved as all-data.json');
-  alert('All Data Has Been Saved.')
-});
-
-// Load all data from a JSON file and restore to localStorage
-document.getElementById('load-all-data-btn').addEventListener('click', () => {
-  const fileInput = document.getElementById('file-input');
-  fileInput.click(); // Trigger the file input dialog
-
-  fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === 'application/json') {
-      const reader = new FileReader();
-
-      // Read the file as text
-      reader.onload = (e) => {
-        try {
-          const loadedData = JSON.parse(e.target.result); // Parse the JSON data
-
-          // Loop through the loaded data and store it back in localStorage
-          for (const key in loadedData) {
-            if (loadedData.hasOwnProperty(key)) {
-              localStorage.setItem(key, JSON.stringify(loadedData[key])); // Store each item in localStorage
+        reader.onload = (e) => {
+          try {
+            const loadedData = JSON.parse(e.target.result);
+            for (const key in loadedData) {
+              if (loadedData.hasOwnProperty(key)) {
+                localStorage.setItem(key, JSON.stringify(loadedData[key]));
+              }
             }
+
+            console.log('All local storage data successfully loaded from all-data.json.');
+
+            if (loadedData.portfolio) {
+              portfolio = loadedData.portfolio;
+              totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * parseFloat(stock.stockDividend), 0);
+            }
+
+            alert('All local storage data has been restored.');
+
+          } catch (error) {
+            console.error('Failed to load data from file:', error);
+            alert('Invalid JSON file.');
           }
+        };
 
-          console.log('All local storage data successfully loaded from all-data.json.');
+        reader.readAsText(file);
 
-          // Now specifically handle portfolio data (updating global array and UI)
-          if (loadedData.portfolio) {
-            portfolio = loadedData.portfolio; // Update global portfolio array
+      } else {
+        alert('Please select a valid JSON file.');
+      }
+    });
 
-            // Update the total dividends
-            totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * parseFloat(stock.stockDividend), 0);
-
-            // Re-render the portfolio and update chart
-            const chartData = loadChartData(); // Reload chart data from localStorage
-            dividendChart.data.labels = chartData.labels;
-            dividendChart.data.datasets[0].data = chartData.data;
-            dividendChart.update(); // Refresh the chart with the updated data
-            refreshCalendar();
-          }
-          
-          alert('All local storage data has been restored.');
-
-        } catch (error) {
-          console.error('Failed to load data from file:', error);
-          alert('Invalid JSON file.');
-        }
-      };
-
-      reader.readAsText(file); // Read the file content
-      
-    } else {
-      alert('Please select a valid JSON file.');
-    }
-  });
+  }
 });
-
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // CALENDAR FUNCTIONS
 
-
-// Function to get portfolio data from localStorage
-function getPortfolio() {
-  const data = localStorage.getItem("portfolio");  // Retrieve the data from 'portfolio' key
-  return data ? JSON.parse(data) : {};  // Parse and return the data, or return an empty object if not found
-}
-
-// Function to get dividendHistory data from localStorage
-function getDividendHistory() {
-  const data = localStorage.getItem("dividendHistory");  // Retrieve the data from 'dividendHistory' key
-  return data ? JSON.parse(data) : {};  // Parse and return the data, or return an empty object if not found
+// Function to get data from local storage
+function getDataFromLocalStorage(key) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : {};
 }
 
 // Call the generateCalendar function when the page loads
@@ -160,8 +131,8 @@ function getDateInfo(month = displayedMonth, year = displayedYear) {
 // Function to calculate the displayed months dividends per day
 function calculateDividendsMap(currentMonth, currentYear) {
   const dividendsMap = {};
-  const portfolio = getPortfolio(); // Retrieve the portfolio object
-  const history = getDividendHistory(); // Retrieve the dividendHistory object
+  const portfolio = getDataFromLocalStorage("portfolio"); // Retrieve the portfolio object
+  const history = getDataFromLocalStorage("dividendHistory"); // Retrieve the dividendHistory object
 
   // Iterate over the keys in the portfolio (the ticker symbols)
   for (const ticker in portfolio) {
@@ -306,12 +277,6 @@ function generateCalendar() {
   console.log('Calendar Rendered'); // Console Log Action
 }
 
-// Function to refresh the calendar
-function refreshCalendar() {
-  generateCalendar(); // Re-generate the calendar with the updated portfolio
-  console.log('Calendar Refreshed'); // Console Log Action
-}
-
 // Event listeners for previous month and next month buttons
 document.getElementById('prev-month').addEventListener('click', () => {
   displayedMonth -= 1;
@@ -340,10 +305,8 @@ document.getElementById('current-month').addEventListener('click', () => {
   generateCalendar();
 });
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // STOCK DIVIDEND DETAIL FUNCTIONS
-
 
 // Fetch detailed stock data
 const fetchStockDetails = async () => {
@@ -406,17 +369,15 @@ const fetchStockDetails = async () => {
     });
 
     // Alert the user
-    alert(`${ticker} not found in portfolio.`);
+    alert(`${ticker} not found in your portfolio.`);
   }
 
   // Clear the input field and show the placeholder
   tickerInput.value = '';
 };
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // DIVIDEND HISTORY FUNCTIONS
-
 
 const historyChart = new Chart(ctx2, {
   type: "line",
@@ -506,22 +467,11 @@ document.getElementById("get-dividend-history-btn").addEventListener("click", ()
   };
 });
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // DIVIDEND GROWTH CHART FUNCTIONS
 
-
-// Check if chart data exists in localStorage
-const loadChartData = () => {
-  const savedChartData = localStorage.getItem('chartData');
-  if (savedChartData) {
-    return JSON.parse(savedChartData); // Parse the saved data
-  }
-  return { labels: [], data: [] }; // Return empty data if no saved chart data
-};
-
-// Initialize chart with data from localStorage (if available)
-const chartData = loadChartData();
+// Check if chart data exists in localStorage and initialize chart
+const chartData = JSON.parse(localStorage.getItem('chartData')) || { labels: [], data: [] };
 
 const dividendChart = new Chart(ctx, {
   type: 'line',
@@ -600,13 +550,6 @@ const updateChart = () => {
 document.getElementById('set-dividend-btn').addEventListener('click', () => {
   updateChart(); // Update the chart with the current total dividends
 });
-
-
-
-
-
-
-
 
 // // Function to handle dividend logic for payment dates in portfoliio
 // function calculateDividendsMap(currentMonth, currentYear) {
