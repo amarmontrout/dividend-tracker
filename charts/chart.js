@@ -234,7 +234,6 @@ function generateCalendar() {
 
   // Update the total dividends display
   totalDividendsElement.textContent = `Estimated Total Dividends: $${totalDividendsForMonth.toFixed(2)}`;
-  alert(totalDividendsForMonth + ' IS TOTAL DIVS FOR MONTH ');
 
   // Create the days of the month
   for (let day = 1; day <= totalDays; day++) {
@@ -254,12 +253,9 @@ function generateCalendar() {
     // Display the dividend total if it exists for this day
     if (dividendsMap[day]) {
       const dividendTotal = document.createElement('div');
-      alert(dividendTotal + ' IS CREATED ');
       dividendTotal.classList.add('dividend-total');
-      alert(dividendsMap[day]);
       dividendTotal.textContent = `$${dividendsMap[day]}`;
       dayElement.appendChild(dividendTotal);
-      alert(dayElement + ' IS APPENDED ');
     }
 
     // Append the day element to the calendar container
