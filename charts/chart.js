@@ -186,7 +186,9 @@ function calculateDividendsMap(currentMonth, currentYear) {
       }
     }
   }
-
+  if (dividendsMap) {
+  alert("Dividends map created");
+  }
   return dividendsMap;
 }
 
@@ -225,6 +227,7 @@ function generateCalendar() {
 
   // Calculate dividends for the current month
   const dividendsMap = calculateDividendsMap(currentMonth, currentYear);
+  
 
   // Calculate the total dividends for the current month
   let totalDividendsForMonth = 0;
@@ -273,7 +276,7 @@ function generateCalendar() {
     calendarContainer.appendChild(emptyCell);
     emptyCell.classList.add('empty-day');
   }
-
+  alert("Calendar rendered");
   console.log('Calendar Rendered'); // Console Log Action
 }
 
