@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Portfolio Tracker</title>
+    <link rel="stylesheet" href="./chart.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+
+    <div class="page-links">
+        <ul>
+            <li>
+                <a href="../index.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="#C5A800" class="bi bi-house-door" viewBox="0 0 16 16">
+                        <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4z"/>
+                    </svg>
+                </a>
+            </li>
+            <li>
+                <a href="./charts.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="#C5A800" class="bi bi-calendar3" viewBox="0 0 16 16">
+                        <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857z"/>
+                        <path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+                    </svg>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <header>
+        <h1>Dividend Portfolio Tracker</h1>
+        
+        <div class="data-btns">
+            <button id="save-all-data-btn">Save Data</button>
+            <button id="load-all-data-btn">Load Data</button>
+            <input type="file" id="file-input" accept=".json" style="display: none;">
+        </div>
+    </header>
+
+    <section class="title"><h2 class="page-title"> My Dividend Charts</h2></section>
+
+    <main>
+
+        <section id="left-section" class="section-left">
+
+            <!-- Calendar Section -->
+            <div id="calendar-section" class="module-styling">
+                <h2>Calendar</h2>
+                <div id="calendar-header">
+                    <span id="month-year" class="subheading"></span>
+                    <span id="total-month-dividends" class="subheading"></span>
+                </div>
+                <div id="calendar-controls">
+                    <button id="prev-month">Last Month</button>
+                    <button id="current-month">Current Month</button>
+                    <button id="next-month">Next Month</button>
+                  </div>
+                <div id="calendar"></div>
+            </div>
+
+            <!-- Stock Details Section -->
+            <div id="stock-details-section" class="module-styling">
+                <h2>Stock Dividend Details</h2>
+                <label for="stock-ticker-input">Enter Stock Ticker:</label>
+                <input type="text" id="stock-ticker-input" placeholder="e.g., IBM">
+                <button class="get-info-btn" onclick="fetchStockDetails()">Get Details</button>
+                <div class="stock-details-grid">
+                    <div class="ticker"></div>
+                    <div class="stock-label-center">Current Details</div>
+                    <div class="stock-label-center">Previous Details</div>
+                    
+                    <div class="stock-label">Ex-Dividend Date</div>
+                    <div id="recentExDividendDate" class="stock-data"></div>
+                    <div id="previousExDividendDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Declaration Date</div>
+                    <div id="recentDeclarationDate" class="stock-data"></div>
+                    <div id="previousDeclarationDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Record Date</div>
+                    <div id="recentRecordDate" class="stock-data"></div>
+                    <div id="previousRecordDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Payment Date</div>
+                    <div id="recentPaymentDate" class="stock-data"></div>
+                    <div id="previousPaymentDate" class="stock-data"></div>
+                    
+                    <div class="stock-label">Dividend Amount</div>
+                    <div id="recentDividendAmount" class="stock-data"></div>
+                    <div id="previousDividendAmount" class="stock-data"></div>
+                </div>
+            </div>
+
+        </section>
+
+        <section id="right-section" class="section-right">
+
+            <!-- History Section -->
+            <div id="history-section" class="module-styling">
+                <h2>Company Dividend History</h2>
+                <div class="get-history-form">
+                    <label for="history-ticker-input">Enter Stock Ticker:</label>
+                    <input type="text" id="history-ticker-input" placeholder="e.g., IBM">
+                    <button class="get-info-btn" id="get-dividend-history-btn">Get History</button>
+                </div>
+                <canvas id="history-chart"></canvas>
+            </div>
+
+            <!-- Chart Section -->
+            <div id="chart-section" class="module-styling">
+                <h2>Portfolio Growth</h2>
+                <div class="chart-btns">
+                    <button id="set-dividend-btn">Set Point</button>
+                </div>
+                <canvas id="dividend-chart"></canvas>
+            </div>
+
+        </section>
+
+    </main>
+    <script src="./chart.js"></script>
+</body>
+</html>

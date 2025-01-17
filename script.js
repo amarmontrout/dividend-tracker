@@ -8,14 +8,8 @@ let fetchedDividendData = null; // Store fetched dividend data
 const toggleButton = document.getElementById('toggle-api-manual-btn');
 let isManualEntry = false; // Track the current mode (false = API, true = Manual)
 
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // MISC FUNCTIONS
-
-const saveTotalDividends = (totalDividends) => {
-  // Shared data for growth chart
-  localStorage.setItem('sharedData', totalDividends);
-};
 
 // Helper function to format date
 const formatDate = (dateString) => {
@@ -30,7 +24,7 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// Function to get data from local storage
+// Function to get data from local storage with passed key
 function getDataFromLocalStorage(key) {
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : {};
@@ -41,44 +35,32 @@ function calcAnnualDivs(ticker) {
   const portfolio = getDataFromLocalStorage("portfolio");
   const portfolioAmounts = [];
   const overview = getDataFromLocalStorage("overviewData");
-
   // Check if the ticker exists in the overview
   if (!overview || !overview[ticker]) {
     alert(`Ticker ${ticker} does not have overview data yet. Can't pull annual dividend per share figure.`);
     return;
   }
-
   const divPerShare = overview[ticker].dividendPerShare;
-
-  console.log(`Annual Dividend Per Share for ${ticker}:`, divPerShare);
-
   for (const stock of portfolio) {
     const symbol = stock.stockName;
     const amtOwned = stock.stockAmount;
     // Push the key-value pair as an object to the portfolioAmounts list
     portfolioAmounts.push({ [symbol]: amtOwned });
   }
-
   // Check if the ticker exists in portfolioAmounts
   const isTickerInPortfolio = portfolioAmounts.some(
     entry => Object.keys(entry).includes(ticker)
   );
-
   if (isTickerInPortfolio) {
-    console.log(`Ticker ${ticker} exists in the portfolio and overview.`);
     // Perform desired calculations
     const stock = portfolio.find(stock => stock.stockName === ticker);
     if (stock) {
       annualDiv = (stock.stockAmount * divPerShare).toFixed(2);
-      
-      console.log(`Annual dividend for ${ticker}: $${annualDiv}`);
-
+      console.log(`CalcAnnualDivs(): Annual dividend for ${ticker}: $${annualDiv}`);
       // Get the existing annual dividends from localStorage or initialize an empty object
       const storedAnnualDividends = JSON.parse(localStorage.getItem("annualDividends")) || {};
-
       // Update or add the key-value pair for the current ticker
       storedAnnualDividends[ticker] = { annualDividend: annualDiv };
-
       // Sort the object by keys (ticker symbols)
       const sortedAnnualDividends = Object.keys(storedAnnualDividends)
         .sort() // Sort keys alphabetically
@@ -86,18 +68,53 @@ function calcAnnualDivs(ticker) {
           sortedObj[key] = storedAnnualDividends[key]; // Rebuild the object in sorted order
           return sortedObj;
         }, {});
-
       // Save the updated object back to localStorage
       localStorage.setItem("annualDividends", JSON.stringify(sortedAnnualDividends));
     }
   } else {
-    console.log(`Ticker ${ticker} does not exist in the portfolio.`);
+    console.log(`CalcAnnualDivs(): Ticker ${ticker} does not exist in the portfolio.`);
   }
+}
 
+// Function to prepare 'divMap' local storage object for calendar
+function createDividendMap() {
+  // Retrieve the existing dividend history object from local storage
+  const dividendHistory = JSON.parse(localStorage.getItem('dividendHistory')) || {};
+  const divMap = {};
+  // Iterate over each ticker in the dividend history
+  for (const ticker in dividendHistory) {
+    const stockData = dividendHistory[ticker];
+    const amounts = stockData.Amount;
+    const paymentDates = stockData.PaymentDate;
+    // Iterate over the amounts and payment dates using their shared index
+    for (const index in amounts) {
+      const amount = amounts[index];
+      const paymentDate = paymentDates[index];
+      if (paymentDate !== "None") {
+        // Check if the payment date exists in divMap
+        if (!divMap[paymentDate]) {
+          divMap[paymentDate] = {}; // Create a new object for the payment date
+        }
+        // Add the ticker and its corresponding amount to the payment date
+        divMap[paymentDate][ticker] = amount;
+      }
+    }
+  }
+  // Sort the payment dates in descending order (most recent first)
+  const sortedDates = Object.keys(divMap).sort((a, b) => new Date(b) - new Date(a));
+  // Create a new sorted divMap
+  const sortedDivMap = {};
+  sortedDates.forEach((date) => {
+    sortedDivMap[date] = divMap[date];
+  });
+  // Save the sorted divMap back to local storage
+  localStorage.setItem('divMap', JSON.stringify(sortedDivMap));
+  console.log('CreateDividendMap(): divMap created and stored in local storage:', sortedDivMap);
+  return null;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// SAVE, LOAD, AND CLEAR BUTTONS
+// SAVE, LOAD, AND CLEAR ALL DATA BUTTONS
 
 document.addEventListener('click', (event) => {
   const elementId = event.target.id;
@@ -194,7 +211,6 @@ document.addEventListener('click', (event) => {
 document.getElementById('setApiKeyButton').addEventListener('click', () => {
   const apiKeyInput = document.getElementById('api-key-input'); // Get the input element
   apiKey = apiKeyInput.value.trim(); // Get the value from the input and set it to apiKey variable
-  
   if (apiKey !== '') {
     localStorage.setItem('apiKey', apiKey); // Save the API key to localStorage
     apiKeyInput.value = ''; // Clear the input field
@@ -208,7 +224,6 @@ document.getElementById('setApiKeyButton').addEventListener('click', () => {
 // Function to load API key from localStorage on page load
 window.onload = () => {
   const storedApiKey = localStorage.getItem('apiKey'); // Retrieve the stored API key
-
   if (storedApiKey) {
     apiKey = storedApiKey; // Set the apiKey variable to the stored value
     console.warn('Loaded API Key from localStorage:', apiKey); // For debugging
@@ -216,29 +231,32 @@ window.onload = () => {
 };
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// FETCH TICKER OVERVIEW DATA FUNCTIONS
+// FETCH API AND SHARED DATA, OVERVIEW, DATA, AND DIVIDEND HISTORY SAVE FUNCTIONS
 
-const fetchOverview = async (ticker) => {
-  const url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`;
+// Function to fetch API data
+const fetchAPIData = async (passedTicker, passedType) => {
+  // Ensure the 'ticker' and 'type' is passed and used properly
+  if (!passedTicker || !passedType) {
+    console.error('FetchAPIData(): Ticker or Type is undefined. Please provide valid inputs.');
+    return null;
+  }
+  const ticker = passedTicker.toUpperCase();
+  const type = passedType.toUpperCase();
+  const url = `https://www.alphavantage.co/query?function=${type}&symbol=${ticker}&apikey=${apiKey}`;
   try {
     const response = await fetch(url);
-    console.warn(`${ticker} overview has been fetched using API key: ${apiKey}`);
-
+    console.warn(`FetchAPIData(): ${ticker} ${type} data has been fetched using API key: ${apiKey}`);
     // Check if the response is JSON or plain text
     const data = await response.json().catch(() => null);
-
+    // Ensure data is valid
     if (!data || data.Information) {
+      console.warn('API Rate Limit reached or Error:', data ? data.Information : 'Unknown Error');
+      alert('API rate limit reached. Please try again later or upgrade to a premium plan.');
       return null;
     }
-
-    // Ensure the `ticker` is passed and used properly
-    if (!ticker) {
-      console.error('Ticker is undefined. Please provide a valid ticker symbol.');
-      return;
-    }
-
-    // Process API response data
-    const parsedData = {
+    if (type === "OVERVIEW") {
+      // Process API overview response data
+      const parsedData = {
       name: data.Name,
       description: data.Description,
       sector: data.Sector,
@@ -256,50 +274,84 @@ const fetchOverview = async (ticker) => {
       exDividendDate: data.ExDividendDate,
       dividendDate: data.DividendDate,
     };
-
     // Save parsedData to local storage function call
-    saveOverviewToLocalStorage('overviewData', ticker, parsedData);
-
+    saveOverviewData('overviewData', ticker, parsedData);
+    return null;
+    } else if (type === "DIVIDENDS") {
+      if (Array.isArray(data.data) && data.data.length > 0) {
+        const latestDividend = data['data'][0];
+        const previousDividend = data['data'][1] || {};
+        const dividendHistory = [];
+        const exDividendDates = [];
+        const paymentDate = [];
+        // Loops through the first 8 indexes of 'data' array
+        for (let i = 0; i < 8; i++) {
+          // Get each dividend object
+          const dividend = data['data'][i];
+          // Extract the 'amount', 'ex_dividend_date', and 'payment_date' values
+          const amount = parseFloat(dividend['amount']) || 0.0000;
+          const exDate = dividend['ex_dividend_date'] || "Unknown";
+          const payDate = dividend['payment_date'] || "Unknown";
+          dividendHistory.push(amount);
+          exDividendDates.push(exDate);       
+          paymentDate.push(payDate);
+        }
+        console.log(`FetchAPIData(): The first 8 indexes of ${ticker} have been calculated`);
+        // Now save this dividend history to localStorage
+        saveDividendHistoryData(ticker, dividendHistory, exDividendDates, paymentDate);
+        return {
+          latest: {
+            exDividendDate: latestDividend['ex_dividend_date'] || 'N/A',
+            declarationDate: latestDividend['declaration_date'] || 'N/A',
+            recordDate: latestDividend['record_date'] || 'N/A',
+            paymentDate: latestDividend['payment_date'] || 'N/A',
+            dividend: parseFloat(latestDividend['amount']) || 0.0000,
+          },
+          previous: {
+            exDividendDate: previousDividend['ex_dividend_date'] || 'N/A',
+            declarationDate: previousDividend['declaration_date'] || 'N/A',
+            recordDate: previousDividend['record_date'] || 'N/A',
+            paymentDate: previousDividend['payment_date'] || 'N/A',
+            dividend: parseFloat(previousDividend['amount']) || 0.0000,
+          },
+        };
+      } else {
+        console.error(`FetchAPIData(): No dividend data found for ${ticker}.`);
+        return null;
+      }
+    }
   } catch (error) {
-    console.error('Error fetching overview data:', error);
+    console.error('FetchAPIData(): Error fetching API data:', error);
+    return null;
   }
-
-  return null;
 };
 
 // Function to save parsed data to localStorage
-const saveOverviewToLocalStorage = (key, ticker, newData) => {
-
+const saveOverviewData = (key, ticker, newData) => {
   if (!ticker || typeof ticker !== 'string' || ticker.trim() === '') {
-    console.error('Invalid ticker provided:', ticker);
+    console.error(`Invalid ticker provided: ${ticker}`);
     return;
   }
-
   // Get the existing data from localStorage, or initialize it if not available
   const storedData = JSON.parse(localStorage.getItem(key)) || {};
-
   // Check if the ticker already exists in localStorage
   if (storedData[ticker]) {
     const storedTickerData = storedData[ticker];
-
     // Check if the data has changed
     const hasChanges = Object.keys(newData).some(
       (field) => newData[field] !== storedTickerData[field]
     );
-
     if (!hasChanges) {
-      console.log(`${ticker} overview data is already up to date.`);
+      console.log(`SaveOverviewData(): Overview data for ${ticker} is already up to date.`);
       return; // Do nothing if there are no changes
     } else {
-      console.log(`${ticker} overview data has changed. Updating.`);
+      console.log(`SaveOverviewData(): Overview data for ${ticker} has changed. Updating.`);
     }
   } else {
-    console.log(`No overview data found for ${ticker}. Adding overview data.`);
+    console.log(`SaveOverviewData(): No existing overview data found for ${ticker}. Adding overview data.`);
   }
-
   // Add or update the ticker data in the stored data
   storedData[ticker] = newData;
-
   // Sort the stored tickers alphabetically by their keys (ticker symbols)
   const sortedStoredData = Object.keys(storedData)
     .sort() // Sort the keys alphabetically
@@ -307,11 +359,128 @@ const saveOverviewToLocalStorage = (key, ticker, newData) => {
       obj[key] = storedData[key]; // Rebuild the object in sorted order
       return obj;
     }, {});
-
   // Save the updated object back to localStorage
   localStorage.setItem(key, JSON.stringify(sortedStoredData));
+  console.log(`SaveOverviewData(): Overview data for ${ticker} has been saved to localStorage.`);
+};
 
-  console.log(`Overview data for ${ticker} has been saved to localStorage.`);
+// Function to save the dividend history and ex-dividend dates to localStorage
+const saveDividendHistoryData = (ticker, dividendHistory, exDividendDates, paymentDate) => {
+  // Get the existing 'dividendHistory' from localStorage, or initialize it if not available
+  const storedHistory = JSON.parse(localStorage.getItem('dividendHistory')) || {};
+  // Check if the ticker already exists in localStorage
+  if (storedHistory[ticker]) {
+    const storedTickerData = storedHistory[ticker];
+    // Check if the dividend data has changed
+    const hasChanges = (
+      dividendHistory.length !== Object.keys(storedTickerData.Amount || {}).length ||
+      exDividendDates.length !== Object.keys(storedTickerData.ExDate || {}).length ||
+      paymentDate.length !== Object.keys(storedTickerData.PaymentDate || {}).length ||
+      dividendHistory.some((value, index) => value !== storedTickerData.Amount[index]) ||
+      exDividendDates.some((value, index) => value !== storedTickerData.ExDate[index]) ||
+      paymentDate.some((value, index) => value !== storedTickerData.PaymentDate[index])
+    );
+    if (!hasChanges) {
+      console.log(`SaveDividendHistoryData(): Dividend history for ${ticker} is already up to date.`);
+      return;
+    } else {
+      console.log(`SaveDividendHistoryData(): Dividend history for ${ticker} has changed. Updating.`);
+    }
+  } else {
+    console.log(`SaveDividendHistoryData(): No dividend history found for ${ticker}. Adding history data.`);
+  }
+  // Create a new object for the ticker with both 'Amount' and 'ExDate' and 'PaymentDate' keys
+  const tickerHistory = {
+    Amount: {},
+    ExDate: {},
+    PaymentDate: {}
+  };
+  for (let i = 0; i < dividendHistory.length; i++) {
+    tickerHistory.Amount[i] = dividendHistory[i];
+    tickerHistory.ExDate[i] = exDividendDates[i];
+    if (i < paymentDate.length) {
+      tickerHistory.PaymentDate[i] = paymentDate[i];
+    }
+  }
+  // Add or update the ticker data in the stored history
+  storedHistory[ticker] = tickerHistory;
+  // Sort the stored tickers alphabetically by their keys (ticker symbols)
+  const sortedStoredHistory = Object.keys(storedHistory)
+    .sort() // Sort the keys alphabetically
+    .reduce((obj, key) => {
+      obj[key] = storedHistory[key]; // Rebuild the object in sorted order
+      return obj;
+    }, {});
+  // Save the updated 'dividendHistory' object back to localStorage
+  localStorage.setItem('dividendHistory', JSON.stringify(sortedStoredHistory));
+  console.log(`SaveDividendHistoryData(): Dividend history for ${ticker} has been saved to localStorage.`);
+};
+
+// Save fetched 'data' information from refetch
+const saveFetchedData = (ticker, dataResponse) => {
+  // Get existing data from localStorage
+  let existingData = JSON.parse(localStorage.getItem('data')) || {};
+  // Fallback to existing data for the ticker if available
+  const existingTickerData = existingData[ticker] || {
+    latest: {
+      exDividendDate: "N/A",
+      declarationDate: "N/A",
+      recordDate: "N/A",
+      paymentDate: stock.stockPaymentDate || "N/A",
+      dividend: stock.stockDividend || 0.0000,
+    },
+    previous: {
+      exDividendDate: "N/A",
+      declarationDate: "N/A",
+      recordDate: "N/A",
+      paymentDate: "N/A",
+      dividend: 0.0000,
+    },
+  };
+  // Initialize the "latest" and "previous" objects using existing data
+  const latest = { ...existingTickerData.latest };
+  const previous = { ...existingTickerData.previous };
+  // Check if fetched data is valid and update the "latest" data
+  if (dataResponse && dataResponse.latest) {
+    const { latest: fetchedLatest, previous: fetchedPrevious } = dataResponse;
+    if (fetchedLatest) {
+      latest.exDividendDate = fetchedLatest.exDividendDate || latest.exDividendDate;
+      latest.declarationDate = fetchedLatest.declarationDate || latest.declarationDate;
+      latest.recordDate = fetchedLatest.recordDate || latest.recordDate;
+      latest.paymentDate = fetchedLatest.paymentDate || latest.paymentDate;
+      latest.dividend = fetchedLatest.dividend || latest.dividend;
+    }
+    if (fetchedPrevious) {
+      previous.exDividendDate = fetchedPrevious.exDividendDate || previous.exDividendDate;
+      previous.declarationDate = fetchedPrevious.declarationDate || previous.declarationDate;
+      previous.recordDate = fetchedPrevious.recordDate || previous.recordDate;
+      previous.paymentDate = fetchedPrevious.paymentDate || previous.paymentDate;
+      previous.dividend = fetchedPrevious.dividend || previous.dividend;
+    }
+  } else {
+    console.log(`SaveFetchedData(): No valid data fetched for ${ticker}. Keeping existing data untouched.`);
+  }
+  // Create the ticker object with the updated or existing data
+  const formattedData = { latest, previous };
+  // Update the data with the new or updated stock
+  existingData[ticker] = formattedData;
+  // Sort the keys alphabetically and rebuild the existingData object
+  const sortedData = Object.keys(existingData)
+    .sort()
+    .reduce((obj, key) => {
+      obj[key] = existingData[key];
+      return obj;
+    }, {});
+  // Save the updated 'data' object to localStorage
+  localStorage.setItem('data', JSON.stringify(sortedData));
+  console.log(`SaveFetchedData(): Latest and previous dividend data for ${ticker} saved to localStorage`);
+  return latest;
+}
+
+// Save sharedData
+const saveTotalDividends = (totalDividends) => {
+  // Shared data for growth chart
+  localStorage.setItem('sharedData', totalDividends);
 };
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -321,7 +490,6 @@ const saveOverviewToLocalStorage = (key, ticker, newData) => {
 document.addEventListener('DOMContentLoaded', () => {
   const dividendInput = document.getElementById('stock-dividend');
   const paymentDateInput = document.getElementById('stock-payment-date');  // Get payment date input field
-
   // Initial state
   if (!dividendInput.value || dividendInput.value === '0.000') {
     dividendInput.disabled = true;
@@ -340,17 +508,17 @@ document.addEventListener('DOMContentLoaded', () => {
 toggleButton.addEventListener('click', () => {
   const dividendInput = document.getElementById('stock-dividend');
   const paymentDateInput = document.getElementById('stock-payment-date');
-  
   // Toggle between manual entry and API
   isManualEntry = !isManualEntry;
-
   if (isManualEntry) {
+    console.log('Manual entry mode is enabled. Skipping API fetch.');
     dividendInput.disabled = false;
     dividendInput.placeholder = 'Enter Dividend:';
     paymentDateInput.disabled = false;
     paymentDateInput.placeholder = 'Enter Payment Date:';
     toggleButton.textContent = 'Switch to API Fetch';
   } else {
+    console.log('API fetch mode is enabled.');
     dividendInput.disabled = true;
     dividendInput.placeholder = 'API Fetch';
     paymentDateInput.disabled = true;
@@ -359,36 +527,26 @@ toggleButton.addEventListener('click', () => {
   }
 });
 
-// Add stock to portfolio
+// Form submission to add stock to portfolio
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-
   const stockName = document.getElementById('stock-name').value.toUpperCase();
   let stockAmount = parseFloat(document.getElementById('stock-amount').value);
   const dividendInput = document.getElementById('stock-dividend');
   const paymentDateInput = document.getElementById('stock-payment-date');
-
-  // Call function to get company overview
-  fetchOverview(stockName);
-
-  console.warn(`Stock added. Company overview data was fetched.`)
-
   // Validate inputs
   if (!stockAmount || isNaN(stockAmount)) {
     alert('Please enter a valid amount.');
     return;
   }
-
   if (!dividendInput.value || parseFloat(dividendInput.value) === 0) {
     alert('Please provide a valid dividend value.');
     return;
   }
-
   // Ensure stock amount and dividend are converted to 4 decimal places
   stockAmount = stockAmount.toFixed(4);
   const stockDividend = parseFloat(dividendInput.value).toFixed(4);
   const stockPaymentDate = paymentDateInput.value || 'N/A';
-
   // Add the stock to the portfolio
   portfolio.push({
     stockName,
@@ -396,10 +554,11 @@ form.addEventListener('submit', (e) => {
     stockDividend: parseFloat(stockDividend),
     stockPaymentDate,
   });
-
+  // Call function to get company overview
+  fetchAPIData(stockName, "OVERVIEW");
+  console.warn(`FormSubmission: ${stockName} added. Company overview data was fetched.`)
   // Save portfolio to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
-
   // Create the new entry in the 'data' localStorage object for the entered stock
   const newStockData = {
     latest: {
@@ -417,13 +576,10 @@ form.addEventListener('submit', (e) => {
       dividend: 0.0000,
     },
   };
-
   // Get existing data from localStorage or initialize it
   let existingData = JSON.parse(localStorage.getItem('data')) || {};
-
   // Add the new stock to the 'data' object
   existingData[stockName] = newStockData;
-
   // Sort 'data' alphabetically by stock name
   const sortedData = Object.keys(existingData)
     .sort()
@@ -431,25 +587,19 @@ form.addEventListener('submit', (e) => {
       obj[key] = existingData[key];
       return obj;
     }, {});
-
   // Save the sorted 'data' object to localStorage
   localStorage.setItem('data', JSON.stringify(sortedData));
-
-  console.log(`Latest and previous dividend data for ${stockName} saved to localStorage`);
-
+  console.log(`FormSubmission: Latest and previous dividend data for ${stockName} saved to localStorage`);
   // Recalculate total dividends
   totalDividends = portfolio.reduce(
     (total, stock) => total + stock.stockAmount * stock.stockDividend,
     0
   );
-
   // Re-render the portfolio table
   renderPortfolio();
-
   // Reset the form and the fetched data
   form.reset();
   fetchedDividendData = null;
-
   // Disable dividend input and payment date input if in API mode
   if (!isManualEntry) {
     dividendInput.disabled = true;
@@ -457,78 +607,24 @@ form.addEventListener('submit', (e) => {
     paymentDateInput.disabled = true;
     paymentDateInput.placeholder = ' ';
   };
-
 });
-
-// Fetching API data
-const fetchDividend = async (ticker) => {
-  const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
-  try {
-    const response = await fetch(url);
-    console.log(`${ticker} has been fetched using API key: ${apiKey}`);
-
-    // Check if the response is JSON or plain text
-    const data = await response.json().catch(() => null);
-
-    if (!data || data.Information) {
-      console.warn('API Rate Limit reached or Error:', data ? data.Information : 'Unknown Error');
-      alert('API rate limit reached. Please try again later or upgrade to a premium plan.');
-      return null;
-    }
-
-    if (data['data'] && data['data'].length > 0) {
-      const latestDividend = data['data'][0];
-      const previousDividend = data['data'][1] || {};
-
-      return {
-        latest: {
-          exDividendDate: latestDividend['ex_dividend_date'] || 'N/A',
-          declarationDate: latestDividend['declaration_date'] || 'N/A',
-          recordDate: latestDividend['record_date'] || 'N/A',
-          paymentDate: latestDividend['payment_date'] || 'N/A',
-          dividend: parseFloat(latestDividend['amount']) || 0.0000,
-        },
-        previous: {
-          exDividendDate: previousDividend['ex_dividend_date'] || 'N/A',
-          declarationDate: previousDividend['declaration_date'] || 'N/A',
-          recordDate: previousDividend['record_date'] || 'N/A',
-          paymentDate: previousDividend['payment_date'] || 'N/A',
-          dividend: parseFloat(previousDividend['amount']) || 0.0000,
-        },
-      };
-    } else {
-      console.error(`No dividend data found for ${ticker}.`);
-    }
-  } catch (error) {
-    console.error('Error fetching dividend data:', error);
-  }
-
-  return null;
-};
 
 // Event listener to fetch dividend when stock ticker is entered
 document.getElementById('stock-name').addEventListener('blur', async (e) => {
   const ticker = e.target.value.toUpperCase();
   const dividendInput = document.getElementById('stock-dividend');
   const paymentDateInput = document.getElementById('stock-payment-date');
-
   fetchedDividendData = null; // Reset fetched data
-
   // Check if manual entry mode is enabled
   if (isManualEntry) {
-    console.log('Manual entry mode is enabled. Skipping API fetch.');
     return; // Exit the function to avoid API calls
   }
-
   if (ticker) {
     dividendInput.disabled = true;
     dividendInput.placeholder = 'Fetching...';
-
-    const dividendData = await fetchDividend(ticker);
-
+    const dividendData = await fetchAPIData(ticker, "DIVIDENDS");
     if (dividendData) {
       fetchedDividendData = dividendData;
-
       // Populate fields with fetched data
       dividendInput.value = dividendData.latest.dividend.toFixed(4);
       paymentDateInput.value = dividendData.latest.paymentDate;
@@ -545,120 +641,7 @@ document.getElementById('stock-name').addEventListener('blur', async (e) => {
       console.log('Manual entry mode is enabled.');
     }
   }
-
-  fetchAllDividends(ticker);
 });
-
-// Function to capture all dividend history in JSON response
-const fetchAllDividends = async (ticker) => {
-  const url = `https://www.alphavantage.co/query?function=DIVIDENDS&symbol=${ticker}&apikey=${apiKey}`;
-  const dividendHistory = []; // Array to store all 'amount' values
-  const exDividendDates = []; // Array to store all 'ex_dividend_date' values
-  const paymentDate = []; // Array to store 'payment_date' values for the first 8 entries
-
-  try {
-    const response = await fetch(url);
-
-    // Check if the response is JSON or plain text
-    const data = await response.json().catch(() => null);
-
-    if (!data || data.Information) {
-      return null;
-    }
-
-    // Loop through the 'data' array and extract the 'amount' and 'ex_dividend_date' from each object
-    if (data['data'] && data['data'].length > 0) {
-      for (let i = 0; i < data['data'].length; i++) {
-        const dividend = data['data'][i]; // Get each dividend object
-
-        // Extract the 'amount' value and 'ex_dividend_date' value
-        const amount = parseFloat(dividend['amount']) || 0.0000; // Default to 0 if no amount
-        const exDate = dividend['ex_dividend_date'] || "Unknown"; // Default to 'Unknown' if no date
-
-        dividendHistory.push(amount); // Store the amount
-        exDividendDates.push(exDate); // Store the ex_dividend_date
-
-        // Extract 'payment_date' for the first 8 indexes
-        if (i < 8) {
-          const payDate = dividend['payment_date'] || "Unknown"; // Default to 'Unknown' if no payment_date
-          paymentDate.push(payDate); // Store the payment_date
-        }
-      }
-
-      // Now save this dividend history to localStorage
-      saveDividendHistoryToLocalStorage(ticker, dividendHistory, exDividendDates, paymentDate);
-
-      return { dividendHistory, exDividendDates, paymentDate }; // Return both arrays
-    } else {
-      console.error(`No dividend data found for ${ticker}.`);
-    }
-  } catch (error) {
-    console.error('Error fetching dividend data:', error);
-  }
-
-  return null;
-};
-
-// Function to save the dividend history and ex-dividend dates to localStorage
-const saveDividendHistoryToLocalStorage = (ticker, dividendHistory, exDividendDates, paymentDate) => {
-  // Get the existing 'dividendHistory' from localStorage, or initialize it if not available
-  const storedHistory = JSON.parse(localStorage.getItem('dividendHistory')) || {};
-
-  // Check if the ticker already exists in localStorage
-  if (storedHistory[ticker]) {
-    const storedTickerData = storedHistory[ticker];
-
-    // Check if the dividend data has changed
-    const hasChanges = (
-      dividendHistory.length !== Object.keys(storedTickerData.Amount || {}).length ||
-      exDividendDates.length !== Object.keys(storedTickerData.ExDate || {}).length ||
-      paymentDate.length !== Object.keys(storedTickerData.PaymentDate || {}).length ||
-      dividendHistory.some((value, index) => value !== storedTickerData.Amount[index]) ||
-      exDividendDates.some((value, index) => value !== storedTickerData.ExDate[index]) ||
-      paymentDate.some((value, index) => value !== storedTickerData.PaymentDate[index])
-    );
-
-    if (!hasChanges) {
-      console.log(`Dividend history for ${ticker} is already up to date.`);
-      return; // Do nothing if there are no changes
-    } else {
-      console.log(`Dividend history for ${ticker} has changed. Updating.`);
-    }
-  } else {
-    console.log(`No dividend history found for ${ticker}. Adding history data.`);
-  }
-
-  // Create a new object for the ticker with both 'Amount' and 'ExDate' and 'PaymentDate' keys
-  const tickerHistory = {
-    Amount: {},
-    ExDate: {},
-    PaymentDate: {}
-  };
-
-  for (let i = 0; i < dividendHistory.length; i++) {
-    tickerHistory.Amount[i] = dividendHistory[i];
-    tickerHistory.ExDate[i] = exDividendDates[i];
-    if (i < paymentDate.length) {
-      tickerHistory.PaymentDate[i] = paymentDate[i];
-    }
-  }
-
-  // Add or update the ticker data in the stored history
-  storedHistory[ticker] = tickerHistory;
-
-  // Sort the stored tickers alphabetically by their keys (ticker symbols)
-  const sortedStoredHistory = Object.keys(storedHistory)
-    .sort() // Sort the keys alphabetically
-    .reduce((obj, key) => {
-      obj[key] = storedHistory[key]; // Rebuild the object in sorted order
-      return obj;
-    }, {});
-
-  // Save the updated 'dividendHistory' object back to localStorage
-  localStorage.setItem('dividendHistory', JSON.stringify(sortedStoredHistory));
-
-  console.log(`Dividend history for ${ticker} has been saved to localStorage.`);
-};
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // MY PORTFOLIO FUNCTIONS
@@ -668,62 +651,49 @@ const displayStockData = (stockName) => {
   // Fetch data from localStorage
   const overviewData = JSON.parse(localStorage.getItem('overviewData')) || {};
   const stockData = overviewData[stockName];
-
   if (!stockData) {
     alert(`Overview data not stored for ${stockName} yet. Try refetching to pull new data.`);
     return;
   }
-
   // Create or show a pop-up/modal
   const popup = document.createElement('div');
   popup.id = 'stock-popup';
-
   // Disable page scrolling
   document.body.classList.add('no-scroll');
-
   popup.innerHTML = `
-  
     <div id="overview-top">
       <h1>${stockName}</h1>
       <button onclick="closePopup()">Close</button>
     </div>
-
     <div id="overview-header" class="module-styling">
       <h2>${stockData.name || stockName}</h2>
       <p>${stockData.sector || 'N/A'}</p>
     </div>
-
     <div id="overview-description" class="module-styling">
       <p>${stockData.description || 'N/A'}</p>
     </div>
-
     <div id="overview-details" class="module-styling">
       <p><strong>Market Cap:</strong> ${stockData.marketCap ? '$' + Number(stockData.marketCap).toLocaleString() : 'N/A'}</p>
       <p><strong>Analyst Target Price:</strong> $${stockData.analystTargetPrice !== undefined && !isNaN(stockData.analystTargetPrice) ? parseFloat(stockData.analystTargetPrice).toFixed(2) : 'N/A'}</p>
       <p><strong>Beta:</strong> ${stockData.beta || 'N/A'}</p>
     </div>
-
     <div id="overview-dividend" class="module-styling">
       <p><strong>Annual Dividend Per Share:</strong> $${stockData.dividendPerShare !== undefined && !isNaN(stockData.dividendPerShare) ? parseFloat(stockData.dividendPerShare).toFixed(2) : 'N/A'}</p>
       <p><strong>Dividend Yield:</strong> ${stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) : 'N/A'}%</p>
     </div>
-
     <div id="overview-financials" class="module-styling">
       <p><strong>Earnings Per Share:</strong> $${stockData.eps !== undefined && !isNaN(stockData.eps) ? parseFloat(stockData.eps).toFixed(2) : 'N/A'}</p>
       <p><strong>Price/Earnings Ratio:</strong> ${stockData.peRatio || 'N/A'}</p>
     </div>
-
     <div id="overview-averages" class="module-styling">
       <p><strong>50 Day Moving Average:</strong> $${stockData.fiftyDMA !== undefined && !isNaN(stockData.fiftyDMA) ? parseFloat(stockData.fiftyDMA).toFixed(2) : 'N/A'}</p>
       <p><strong>200 Day Moving Average:</strong> $${stockData.twoHundredDMA !== undefined && !isNaN(stockData.twoHundredDMA) ? parseFloat(stockData.twoHundredDMA).toFixed(2) : 'N/A'}</p>
     </div>
-
     <div id="overview-highlow" class="module-styling">
       <p><strong>52 Week High:</strong> $${stockData.yearHigh !== undefined && !isNaN(stockData.yearHigh) ? parseFloat(stockData.yearHigh).toFixed(2) : 'N/A'}</p>
       <p><strong>52 Week Low:</strong> $${stockData.yearLow !== undefined && !isNaN(stockData.yearLow) ? parseFloat(stockData.yearLow).toFixed(2) : 'N/A'}</p>
     </div>
   `;
-
   document.body.appendChild(popup);
 };
 
@@ -761,66 +731,34 @@ const renderPortfolio = () => {
     // Add a click event listener to the stock name cell
     row.querySelector('.stock-name-cell').addEventListener('click', () => displayStockData(stock.stockName));
   });
-  console.log('Table Rendered'); // Console Log Action
-
   totalPaymentElement.textContent = totalDividends.toFixed(2);
   saveTotalDividends(totalDividends.toFixed(2));
-
   // Save portfolio to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
-
   // Highlight row with payment date two months ago
   highlightOldStock();
+  console.log('RenderPortfolio(): Table Rendered'); // Console Log Action
 };
 
 // Function to highlight the stock row with payment date 2 and 3 months ago
 function highlightOldStock() {
   // Get the current date
   const today = new Date();
-
-  // Get the month and year for one months ago
-  const oneMonthAgo = new Date(today);
-  oneMonthAgo.setMonth(today.getMonth() - 1);
-  
-  // Get the month and year for two months ago
-  const twoMonthsAgo = new Date(today);
-  twoMonthsAgo.setMonth(today.getMonth() - 2);
-  
-  // Get the month and year for three months ago
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(today.getMonth() - 3);
-
-  // Extract the month values (0-based month: January = 0, December = 11)
-  const twoMonthsAgoMonth = twoMonthsAgo.getMonth();
-  const threeMonthsAgoMonth = threeMonthsAgo.getMonth();
-  const oneMonthAgoMonth = oneMonthAgo.getMonth();
-
-  // Loop through the portfolio and check if the payment date is two or three months ago
+  // Create an array to store the months for 1, 2, and 3 months ago
+  const monthsAgo = [];
+  // Calculate the months for 1, 2, and 3 months ago
+  for (let i = 1; i <= 3; i++) {
+    const date = new Date(today);
+    date.setMonth(today.getMonth() - i);
+    monthsAgo.push(date.getMonth()); // Extract and store the month (0-based)
+  }
+  // Loop through the portfolio and check if the payment date matches any of the monthsAgo
   portfolio.forEach((stock, index) => {
     // Parse the payment date (Assuming the format is YYYY-MM-DD)
     const [year, month, day] = stock.stockPaymentDate.split('-');
     const stockMonth = parseInt(month) - 1; // Month is 1-based in the stock data, so subtract 1
-
-    // Compare if the payment date is exactly one months ago
-    if (stockMonth === oneMonthAgoMonth) {
-      // Find the corresponding row and add a CSS class for highlighting
-      const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
-      if (stockRow) {
-        stockRow.classList.add('highlight'); // Add the highlight class
-      }
-    }
-
-    // Compare if the payment date is exactly two months ago
-    if (stockMonth === twoMonthsAgoMonth) {
-      // Find the corresponding row and add a CSS class for highlighting
-      const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
-      if (stockRow) {
-        stockRow.classList.add('highlight'); // Add the highlight class
-      }
-    }
-
-    // Compare if the payment date is exactly three months ago
-    if (stockMonth === threeMonthsAgoMonth) {
+    // Check if the stockMonth matches any of the months in monthsAgo
+    if (monthsAgo.includes(stockMonth)) {
       // Find the corresponding row and add a CSS class for highlighting
       const stockRow = document.getElementById(`stock-${index}`); // Find the row by ID
       if (stockRow) {
@@ -841,9 +779,7 @@ window.updateStock = (index, field, value) => {
     }
     value = value.toFixed(4); // Only apply .toFixed(4) for numeric fields
   }
-
   const stock = portfolio[index];
-
   if (field === 'amount') {
     totalDividends -= stock.stockAmount * stock.stockDividend;  // Remove old value
     stock.stockAmount = value;
@@ -856,17 +792,16 @@ window.updateStock = (index, field, value) => {
     if (data[stock.stockName]) {
       data[stock.stockName].latest.dividend = value; // Update the dividend only
       localStorage.setItem('data', JSON.stringify(data)); // Save the updated data back to localStorage
-      console.log(`Updated dividend for ${stock.stockName} in 'data' object.`);
+      console.log(`UpdateStock(): Updated dividend for ${stock.stockName} in 'data' object.`);
     } else {
       console.error(`Ticker ${stock.stockName} not found in 'data' object.`);
     }
   }
-
   // Recalculate the full dividend for the stock
   totalDividends += stock.stockAmount * stock.stockDividend;
-
-  console.log("Stock value manually updated.");
+  console.log("UpdateStock(): Stock value manually updated.");
   renderPortfolio();
+  createDividendMap();
   calcAnnualDivs(stock.stockName);
 };
 
@@ -874,178 +809,84 @@ window.updateStock = (index, field, value) => {
 window.removeStock = (index) => {
   const stock = portfolio.splice(index, 1)[0];
   totalDividends -= stock.stockAmount * stock.stockDividend;
-
-  // Remove the corresponding entry from the 'data' object in localStorage
-  let existingData = JSON.parse(localStorage.getItem('data')) || {};
-  // Delete the stock data by ticker symbol
-  delete existingData[stock.stockName];
-  // Save the updated 'data' object back to localStorage
-  localStorage.setItem('data', JSON.stringify(existingData));
-
-  // Remove the corresponding entry from the 'dividendHistory' object in localStorage
-  let existingData2 = JSON.parse(localStorage.getItem('dividendHistory')) || {};
-  // Delete the stock data by ticker symbol
-  delete existingData2[stock.stockName];
-  // Save the updated 'dividendHistory' object back to localStorage
-  localStorage.setItem('dividendHistory', JSON.stringify(existingData2));
-
-  // Remove the corresponding entry from the 'overviewData' object in localStorage
-  let existingData3 = JSON.parse(localStorage.getItem('overviewData')) || {};
-  // Delete the stock data by ticker symbol
-  delete existingData3[stock.stockName];
-  // Save the updated 'overviewData' object back to localStorage
-  localStorage.setItem('overviewData', JSON.stringify(existingData3));
-
-  // Remove the corresponding entry from the 'annualDividends' object in localStorage
-  let existingData4 = JSON.parse(localStorage.getItem('annualDividends')) || {};
-  // Delete the stock data by ticker symbol
-  delete existingData4[stock.stockName];
-  // Save the updated 'overviewData' object back to localStorage
-  localStorage.setItem('annualDividends', JSON.stringify(existingData4));
-
+  const keys = ['data', 'dividendHistory', 'overviewData', 'annualDividends']
+  for (const key of keys) {
+    // Remove the corresponding entry from the localStorage object
+    let existingData = JSON.parse(localStorage.getItem(key)) || {};
+    // Delete the stock data by ticker symbol
+    delete existingData[stock.stockName];
+    // Save the updated localStorage object
+    localStorage.setItem(key, JSON.stringify(existingData));
+  }
   console.log(`${stock.stockName} has been removed.`)
-
   // Re-render the portfolio table
   renderPortfolio();
+  createDividendMap();
 };
 
 // Refetch dividend
 window.refetchDividend = async (index) => {
-  const stock = portfolio[index];
+  let stock = portfolio[index];
   const button = document.getElementById(`refetch-btn-${index}`);
   const ticker = stock.stockName;
-
   // Update button text to indicate fetching
   button.textContent = 'Refetching...';
-
   let hasChanges = false; // Track if any changes occur
-
   try {
     // Fetch new dividend data
-    const dividendData = await fetchDividend(ticker);
-  
-    // Get existing data from localStorage
-    let existingData = JSON.parse(localStorage.getItem('data')) || {};
-  
-    // Fallback to existing data for the ticker if available
-    const existingTickerData = existingData[ticker] || {
-      latest: {
-        exDividendDate: "N/A",
-        declarationDate: "N/A",
-        recordDate: "N/A",
-        paymentDate: stock.stockPaymentDate || "N/A",
-        dividend: stock.stockDividend || 0.0000,
-      },
-      previous: {
-        exDividendDate: "N/A",
-        declarationDate: "N/A",
-        recordDate: "N/A",
-        paymentDate: "N/A",
-        dividend: 0.0000,
-      },
-    };
-  
-    // Initialize the "latest" and "previous" objects using existing data
-    const latest = { ...existingTickerData.latest };
-    const previous = { ...existingTickerData.previous };
-  
-    // Check if fetched data is valid and update the "latest" data
-    if (dividendData && dividendData.latest) {
-      const { latest: fetchedLatest, previous: fetchedPrevious } = dividendData;
-  
-      if (fetchedLatest) {
-        latest.exDividendDate = fetchedLatest.exDividendDate || latest.exDividendDate;
-        latest.declarationDate = fetchedLatest.declarationDate || latest.declarationDate;
-        latest.recordDate = fetchedLatest.recordDate || latest.recordDate;
-        latest.paymentDate = fetchedLatest.paymentDate || latest.paymentDate;
-        latest.dividend = fetchedLatest.dividend || latest.dividend;
+    const dividendData = await fetchAPIData(ticker, "DIVIDENDS");
+    // Save the fetched data
+    let latest = saveFetchedData(ticker, dividendData);
+    // Logic to see if dividend or payment date has changed
+    if (latest) {
+      // Copy the original portfolio object for comparison
+      const oldStock = { ...portfolio[index] }; 
+      // Update portfolio with new values from fetch
+      portfolio[index] = {
+        stockName: ticker,
+        stockAmount: stock.stockAmount,
+        stockDividend: latest.dividend,
+        stockPaymentDate: latest.paymentDate,
+      };
+      if (
+        oldStock.stockDividend !== portfolio[index].stockDividend ||
+        oldStock.stockPaymentDate !== portfolio[index].stockPaymentDate
+      ) {
+        hasChanges = true;
       }
-  
-      if (fetchedPrevious) {
-        previous.exDividendDate = fetchedPrevious.exDividendDate || previous.exDividendDate;
-        previous.declarationDate = fetchedPrevious.declarationDate || previous.declarationDate;
-        previous.recordDate = fetchedPrevious.recordDate || previous.recordDate;
-        previous.paymentDate = fetchedPrevious.paymentDate || previous.paymentDate;
-        previous.dividend = fetchedPrevious.dividend || previous.dividend;
-      }
-    } else {
-      console.warn(`No valid data fetched for ${ticker}. Keeping existing data untouched.`);
     }
-  
-    // Create the ticker object with the updated or existing data
-    const formattedData = { latest, previous };
-  
-    // Update the data with the new or updated stock
-    existingData[ticker] = formattedData;
-  
-    // Sort the keys alphabetically and rebuild the existingData object
-    const sortedData = Object.keys(existingData)
-      .sort()
-      .reduce((obj, key) => {
-        obj[key] = existingData[key];
-        return obj;
-      }, {});
-  
-    // Save the updated 'data' object to localStorage
-    localStorage.setItem('data', JSON.stringify(sortedData));
-    console.log(`Latest and previous dividend data for ${ticker} saved to localStorage`);
-
-    const oldStock = { ...portfolio[index] }; // Copy the original stock object for comparison
-    // Update portfolio with new values
-    portfolio[index] = {
-      stockName: ticker,
-      stockAmount: stock.stockAmount,
-      stockDividend: latest.dividend,
-      stockPaymentDate: latest.paymentDate,
-    };
-
-    if (
-      oldStock.stockDividend !== portfolio[index].stockDividend ||
-      oldStock.stockPaymentDate !== portfolio[index].stockPaymentDate
-    ) {
-      hasChanges = true;
-    }
-
     // Calculate annual dividends for stock
-    calcAnnualDivs(stock.stockName);
-
+    calcAnnualDivs(ticker);
     // Recalculate total dividends
     totalDividends = portfolio.reduce(
       (total, stock) => total + stock.stockAmount * stock.stockDividend,
       0
     );
-
-    // Re-render the portfolio table only if changes occurred
+    // Re-render the portfolio and sort divMap only if changes occurred
     if (hasChanges) {
+      console.error("RefetchDividend(): There has been a change. Running createDividendMap and renderPortfolio")
+      createDividendMap();
       renderPortfolio();
     }
-
   } catch (error) {
-    console.error(`Error refetching dividend for ${ticker}:`, error);
+    console.error(`RefetchDividend(): Error refetching dividend for ${ticker}:`, error);
   } finally {
     // Reset button text after operation
     button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/></svg>';
   }
-
-  // Call function to get full dividend amount history
-  fetchAllDividends(ticker);
-  console.error("Remember to move this fetchAllDividends function back in the below if statement after all tickers have PaymentDate under dividendHistory local storage")
-
   if (shouldFetch(ticker)) {
-    
     // Call function to get company overview
-    fetchOverview(ticker);
-    console.warn("Fetch initiated for overview and dividend history data.");
-
+    fetchAPIData(ticker, "OVERVIEW");
+    console.warn(`RefetchDividend(): Fetch initiated for overview data for ${ticker}.`);
   } else {
-    console.log(" and overview data wasn't fetched because the payment date hasn't changed.");
+    console.log(`RefetchDividend(): Overview data wasn't fetched for ${ticker} because the payment date hasn't changed.`);
   }
-
-  // Confirm data was refetched
-  console.warn(`Refetch action for ticker ${ticker} is completed.`);
-
   // Resave Stock to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
+  // Confirm data was refetched. Timeout for console logs
+  setTimeout(() => {
+  console.warn(`Refetch action for ticker ${ticker} is completed.`);
+}, 3000);
 };
 
 // Load portfolio from localStorage if available
@@ -1062,22 +903,18 @@ document.addEventListener('DOMContentLoaded', () => {
 const shouldFetch = (ticker) => {
   const overview = JSON.parse(localStorage.getItem('overviewData')) || {};
   const dividend = JSON.parse(localStorage.getItem('data')) || {};
-
   // Check if ticker data exists in both sources
   if (!overview[ticker] || !dividend[ticker]) {
-    console.error(`Data for ticker ${ticker} is missing in one or both local storage keys, overviewData or data.`);
+    console.error(`Data for ${ticker} is missing in 'overviewData' and/or 'data'`);
     return true; // Fetch is required if data is incomplete
   }
-
   const overviewPayDate = overview[ticker].dividendDate;
   const divPayDate = dividend[ticker].latest.paymentDate;
-
   // Check if the latest payment date exists
   if (!divPayDate) {
-    console.error(`Latest payment date is missing for ticker ${ticker}.`);
+    console.error(`Latest payment date in 'data' is missing for ticker ${ticker}.`);
     return true; // Fetch if the latest payment date is missing
   }
-
   // If overviewPayDate is missing or doesn't match divPayDate, fetch is needed
   if (overviewPayDate !== divPayDate) {
     console.error(
@@ -1085,7 +922,6 @@ const shouldFetch = (ticker) => {
     );
     return true;
   }
-
   // Dates match; no need to fetch
   return false;
 };
