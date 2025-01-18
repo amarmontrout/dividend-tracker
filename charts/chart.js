@@ -24,6 +24,12 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
+// Function to get data from local storage with passed key
+function getDataFromLocalStorage(key) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : {};
+}
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE AND LOAD BUTTONS
 
@@ -509,7 +515,7 @@ const updateChart = () => {
   const localDate = today.toLocaleDateString('en-CA'); // YYYY-MM-DD format
   
   // Get the totalDividends value, and convert it to a float
-  const totalDividends = parseFloat(localStorage.getItem('sharedData')); 
+  const totalDividends = getDataFromLocalStorage('totalAnnualDividends'); 
 
   // If 'sharedData' is not a valid number, return early
   if (isNaN(totalDividends)) {
@@ -545,39 +551,3 @@ const updateChart = () => {
 document.getElementById('set-dividend-btn').addEventListener('click', () => {
   updateChart(); // Update the chart with the current total dividends
 });
-
-// // Function to handle dividend logic for payment dates in portfoliio
-// function calculateDividendsMap(currentMonth, currentYear) {
-//   const dividendsMap = {};
-//   const portfolio = getPortfolio(); // Retrieve the portfolio from the new location
-
-//   // Iterate over the keys in the portfolio (the ticker symbols)
-//   for (const ticker in portfolio) {
-//     const stock = portfolio[ticker];
-//     const paymentDateStr = stock.stockPaymentDate; // yyy-mm-dd
-
-//     // If there's no payment date, skip this stock
-//     if (!paymentDateStr) continue;
-
-//     const [year, month, day] = paymentDateStr.split('-'); // Extract year, month, and day
-
-//     // Create a date object for the payment date
-//     const paymentDate = new Date(year, month - 1, day);
-
-//     // Only add dividends for the current month
-//     if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-//       const paymentDay = paymentDate.getDate(); // Correct day of the month (1-31)
-
-//       const totalDividend = ((stock.stockAmount * stock.stockDividend)).toFixed(2); // Use the dividend from the latest data
-
-//       // Store the dividend total for the day
-//       if (dividendsMap[paymentDay]) {
-//         dividendsMap[paymentDay] = (parseFloat(dividendsMap[paymentDay]) + parseFloat(totalDividend)).toFixed(2);
-//       } else {
-//         dividendsMap[paymentDay] = totalDividend;
-//       }
-//     }
-//   }
-
-//   return dividendsMap;
-// }

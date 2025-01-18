@@ -2,7 +2,6 @@ const form = document.getElementById('stock-form');
 const portfolioTable = document.querySelector('#portfolio-table tbody');
 const totalPaymentElement = document.getElementById('total-payment');
 let portfolio = [];
-let totalDividends = 0;
 let apiKey = '';
 let fetchedDividendData = null; // Store fetched dividend data
 const toggleButton = document.getElementById('toggle-api-manual-btn');
@@ -29,13 +28,19 @@ function getDataFromLocalStorage(key) {
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : {};
 }
+
 // Function to calculate annual dividend based on dividend per share
 function calcAnnualDivs(ticker) {
   const portfolio = getDataFromLocalStorage("portfolio");
   const portfolioAmounts = [];
   const overview = getDataFromLocalStorage("overviewData");
+  let overviewDPS;
   const history = getDataFromLocalStorage('dividendHistory');
-  const overviewDPS = overview[ticker].dividendPerShare;
+  if (overview && overview[ticker]) {
+    overviewDPS = overview[ticker].dividendPerShare;
+  } else {
+    overviewDPS = 0;
+  }
   let estimateDivPerShare;
   let divPerShare;
   let fourQuarterAmount = 0;
@@ -47,13 +52,45 @@ function calcAnnualDivs(ticker) {
       return;
     }
     const quarterAmounts = stock['Amount']
-    if (quarterAmounts.length < 4) {
-      alert(`Insufficient data to estimate the annual dividend for ${ticker}.`);
-      return;
+    const numEntries = Object.keys(quarterAmounts).length;
+    if ( overviewDPS === 0 && numEntries === 1 ) {
+      const onlyDiv = quarterAmounts[0];
+      if (isNaN(onlyDiv)) {
+        alert(`Invalid dividend amount for ${ticker}`);
+        return;
+      }
+      fourQuarterAmount = onlyDiv * 4
+    } else if  (overviewDPS !== 0 ) {
+      if (quarterAmounts.length < 4) {
+        alert(`Insufficient data to estimate the annual dividend for ${ticker}.`);
+        return;
+      }
+      fourQuarterAmount = 0;
+      // Gets last 4 dividends to calculate estimated annual dividend per share
+      for (let i = 0; i < 4; i++) {
+        if (isNaN(quarterAmounts[i])) {
+          alert(`Invalid dividend amount at index ${i} for ${ticker}`);
+          return;
+        }
+        fourQuarterAmount += quarterAmounts[i];
+      }
     }
-    // Gets last 4 dividends to calculate estimated annual dividend per share
-    for (let i = 0; i < 4; i++) {
-      fourQuarterAmount = fourQuarterAmount + quarterAmounts[i];
+    if ( ticker == 'BND' || ticker == 'JEPI') {
+      if (numEntries === 1) {
+        fourQuarterAmount = 0;
+        const onlyDiv = quarterAmounts[0];
+        fourQuarterAmount = onlyDiv * 12
+      } else {
+        fourQuarterAmount = 0;
+        for (let i = 0; i < 6; i++) {
+          if (isNaN(quarterAmounts[i])) {
+            alert(`Invalid dividend amount at index ${i} for ${quarterAmounts}`);
+            return;
+          }
+          fourQuarterAmount += quarterAmounts[i];
+        }
+        fourQuarterAmount *= 2;
+      }      
     }
     estimateDivPerShare = fourQuarterAmount.toFixed(4);
     divPerShare = estimateDivPerShare; // Assign the fallback estimate
@@ -90,6 +127,7 @@ function calcAnnualDivs(ticker) {
         }, {});
       // Save the updated object back to localStorage
       localStorage.setItem("annualDividends", JSON.stringify(sortedAnnualDividends));
+      totalDividendPayment();
     }
   } else {
     console.log(`CalcAnnualDivs(): Ticker ${ticker} does not exist in the portfolio.`);
@@ -134,17 +172,17 @@ function createDividendMap() {
 }
 
 const totalDividendPayment = () => {
-  totalDividends = 0;
+  let totalDividends = 0;
   const annualDividends = getDataFromLocalStorage('annualDividends');
   Object.values(annualDividends).forEach(value => {
     let tickerAnnualDividend = parseFloat(value.annualDividend);
     totalDividends += tickerAnnualDividend;
   });
-
-  totalPaymentElement.textContent = totalDividends.toFixed(2);
   console.log(`Total Dividends: $${totalDividends.toFixed(2)}`);
+  localStorage.setItem('totalAnnualDividends', totalDividends.toFixed(2));
+  totalPaymentElement.textContent = totalDividends.toFixed(2);
 };
-
+totalDividendPayment();
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE, LOAD, AND CLEAR ALL DATA BUTTONS
 
@@ -220,7 +258,6 @@ document.addEventListener('click', (event) => {
       console.log('All local storage data has been cleared.');
       alert('All local storage data has been cleared.');
       portfolio = [];
-      totalDividends = 0;
       renderPortfolio();
     }
   }
@@ -499,12 +536,6 @@ const saveFetchedData = (ticker, dataResponse) => {
   return latest;
 }
 
-// Save sharedData
-const saveTotalDividends = (totalDividends) => {
-  // Shared data for growth chart
-  localStorage.setItem('sharedData', totalDividends);
-};
-
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // ADD STOCK FUNCTIONS
 
@@ -570,7 +601,9 @@ form.addEventListener('submit', (e) => {
   const stockDividend = parseFloat(dividendInput.value).toFixed(4);
   const stockPaymentDate = paymentDateInput.value || 'N/A';
   // Saving dividend history for manually entered stocks
-  const dividendTwoDecimal = parseFloat(dividendInput.value).toFixed(2)
+  const formattedDividnedTwoDecimal = parseFloat(dividendInput.value).toFixed(2);
+  const dividendTwoDecimal = parseFloat(formattedDividnedTwoDecimal)
+  console.log(`-----The dividendInput is a $${typeof(dividendTwoDecimal)}`)
   saveDividendHistoryData(stockName, [dividendTwoDecimal], 0, [stockPaymentDate]);
   // Add the stock to the portfolio
   portfolio.push({
@@ -630,6 +663,9 @@ form.addEventListener('submit', (e) => {
   };
   // Calculate dividendMap after stock is added
   createDividendMap();
+  setTimeout(() => {
+  calcAnnualDivs(stockName);
+  }, 1000)
 });
 
 // Event listener to fetch dividend when stock ticker is entered
@@ -743,10 +779,10 @@ const renderPortfolio = () => {
     row.id = `stock-${index}`;  // Add a unique ID to each row
     row.innerHTML = `
       <td id="${stock.stockName}" class="stock-name-cell">${stock.stockName}</td>
-      <td contenteditable="true" onblur="updateStock(${index}, 'amount', this.textContent)">${parseFloat(stock.stockAmount).toFixed(4)}</td> <!-- Ensure 4 decimal places -->
-      <td contenteditable="true" onblur="updateStock(${index}, 'dividend', this.textContent)">${parseFloat(stock.stockDividend).toFixed(4)}</td> <!-- Display dividend with 4 decimals -->
-      <td id="full-dividend-${index}">$${fullDividend}</td> <!-- Display full dividend -->
-      <td id="dividend-date" onblur="updateStock(${index}, 'paymentDate', this.textContent)">${formattedDate}</td>
+      <td contenteditable="true" onblur="updateStock(${index}, 'amount', this.textContent)">${parseFloat(stock.stockAmount).toFixed(4)}</td>
+      <td>${parseFloat(stock.stockDividend).toFixed(4)}</td>
+      <td id="full-dividend-${index}">$${fullDividend}</td>
+      <td id="dividend-date">${formattedDate}</td>
       <td><button id="refetch-btn-${index}" class="portfolio-refetch-btn" data-index="${index}"  onclick="refetchDividend(${index})"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/></svg></button></td> <!-- Refetch button -->
       <td><button onclick="removeStock(${index})" class="portfolio-rm-btn" ><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/></svg></button></td>
     `;
@@ -754,12 +790,10 @@ const renderPortfolio = () => {
     // Add a click event listener to the stock name cell
     row.querySelector('.stock-name-cell').addEventListener('click', () => displayStockData(stock.stockName));
   });
-  saveTotalDividends(totalDividends.toFixed(2));
   // Save portfolio to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
   // Highlight row with payment date two months ago
   highlightOldStock();
-  totalDividendPayment();
   console.log('RenderPortfolio(): Table Rendered'); // Console Log Action
 };
 
@@ -793,38 +827,21 @@ function highlightOldStock() {
 
 // Update stock details
 window.updateStock = (index, field, value) => {
+  const stock = portfolio[index];
   // Ensure value is valid number before attempting to parse and apply
-  if (field === 'amount' || field === 'dividend') {
+  if (field === 'amount') {
     value = parseFloat(value);
     if (isNaN(value)) {
       alert('Invalid input for ' + field);
       return; // Exit early if value is not a valid number
     }
-    value = value.toFixed(4); // Only apply .toFixed(4) for numeric fields
+    stock.stockAmount = parseFloat(value.toFixed(4));
   }
-  const stock = portfolio[index];
-  if (field === 'amount') {
-    stock.stockAmount = value;
-  } else if (field === 'dividend') {
-    stock.stockDividend = value;
-
-    // Update the 'data' object in localStorage only if dividend is updated
-    let data = JSON.parse(localStorage.getItem('data')) || {};
-    if (data[stock.stockName]) {
-      data[stock.stockName].latest.dividend = value; // Update the dividend only
-      localStorage.setItem('data', JSON.stringify(data)); // Save the updated data back to localStorage
-      console.log(`UpdateStock(): Updated dividend for ${stock.stockName} in 'data' object.`);
-    } else {
-      console.error(`Ticker ${stock.stockName} not found in 'data' object.`);
-    }
-  }
-
-  console.log(`UpdateStock(): ${stock.stockName} value manually updated.`);
-  renderPortfolio();
+  console.log(`UpdateStock(): ${stock.stockName} value manually updated to ${stock.stockAmount}.`);
+  // Ensure the portfolio is saved/updated
+  localStorage.setItem("portfolio", JSON.stringify(portfolio));
   calcAnnualDivs(stock.stockName);
-  totalDividendPayment();
-  saveTotalDividends(totalDividends.toFixed(2));
-  createDividendMap();
+  renderPortfolio();
 };
 
 // Remove stock from portfolio, dividendHistory, and data objects
@@ -876,8 +893,6 @@ window.refetchDividend = async (index) => {
         hasChanges = true;
       }
     }
-    // Calculate annual dividends for stock
-    calcAnnualDivs(ticker);
 
     // Re-render the portfolio and sort divMap only if changes occurred
     if (hasChanges) {
@@ -900,10 +915,11 @@ window.refetchDividend = async (index) => {
   }
   // Resave Stock to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
+  calcAnnualDivs(ticker);
   // Confirm data was refetched. Timeout for console logs
   setTimeout(() => {
   console.warn(`Refetch action for ticker ${ticker} is completed.`);
-}, 3000);
+}, 2000);
 };
 
 // Load portfolio from localStorage if available
