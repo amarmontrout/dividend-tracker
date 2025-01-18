@@ -192,6 +192,7 @@ function generateCalendar() {
   const calendarContainer = document.getElementById('calendar');
   const monthYearElement = document.getElementById('month-year');
   const totalDividendsElement = document.getElementById('total-month-dividends');
+  const divMap = getDataFromLocalStorage("divMap"); // Retrieve the divMap object
 
   // Update the month-year text content
   const monthNames = [
@@ -258,11 +259,20 @@ function generateCalendar() {
       dividendTotal.classList.add('dividend-total');
       dividendTotal.textContent = `$${dividendsMap[day]}`;
       dayElement.appendChild(dividendTotal);
+
+      // Add a click event listener to the dividend-total element
+      dividendTotal.addEventListener('click', () => {
+        // let dateStr = (currentYear + '-' + (currentMonth + 1) + '-' + day)
+        // let formattedDateStr = formatDate(dateStr);
+
+        displayDividendData(day, divMap);
+      });
     }
 
     // Append the day element to the calendar container
     calendarContainer.appendChild(dayElement);
   }
+
 
   // Calculate how many empty cells are needed to complete the last row
   const totalCells = firstDayWeekday + totalDays;  // Total cells in the calendar (including blanks)
@@ -276,6 +286,67 @@ function generateCalendar() {
     emptyCell.classList.add('empty-day');
   }
   console.log('Calendar Rendered'); // Console Log Action
+}
+
+const displayDividendData = (day, divMap) => {
+  // Get the tickers paying on this day from divMap
+  const paymentDateStr = `${displayedYear}-${(displayedMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+  const tickers = divMap[paymentDateStr] || {};
+  const formattedPaymentDateStr = formatDate(paymentDateStr);
+  const portfolio = getDataFromLocalStorage('portfolio');
+  let total;
+  let totalDayDivs = [];
+  for (const [key, value] of Object.entries(tickers)) {
+    for (const index in portfolio) {
+      let portfolioStock = portfolio[index];
+      if (portfolioStock.stockName === key) {
+        total = value * (portfolioStock.stockAmount)
+      }
+    }
+    totalDayDivs.push({[key]: total.toFixed(2)})
+  }
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'popup-overlay';
+  document.body.appendChild(overlay);
+
+  // Create or show a pop-up/modal
+  const popup = document.createElement('div');
+  popup.id = 'dividend-popup';
+  document.body.classList.add('no-scroll'); // Disable page scrolling
+  // Generate the inner HTML dynamically
+  const detailsHTML = totalDayDivs
+    .map(obj => {
+      const [ticker, amount] = Object.entries(obj)[0]; // Extract the ticker and amount from the object
+      return `<p><strong>${ticker}:</strong> $${amount}</p>`;
+    })
+    .join('');
+    popup.innerHTML = `
+      <div id="day-top">
+        <button onclick="closePopup()">Close</button>
+      </div>
+      <div id="day-body" class="module-styling">
+        <h2>Dividends for ${formattedPaymentDateStr}</h2>
+        <div id="dividend-details">
+          ${detailsHTML}
+        </div>
+      </div>
+    `;
+  document.body.appendChild(popup);
+};
+
+// Function to close the pop-up
+function closePopup() {
+  const popup = document.getElementById('dividend-popup');
+  const overlay = document.getElementById('popup-overlay');
+  if (popup) {
+    document.body.classList.remove('no-scroll'); // Re-enable page scrolling
+    popup.remove();
+  }
+  if (overlay) {
+    overlay.remove(); // Remove the overlay
+  }
 }
 
 // Event listeners for previous month and next month buttons

@@ -721,6 +721,10 @@ const displayStockData = (stockName) => {
     alert(`Overview data not stored for ${stockName} yet. Try refetching to pull new data.`);
     return;
   }
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'popup-overlay';
+  document.body.appendChild(overlay);
   // Create or show a pop-up/modal
   const popup = document.createElement('div');
   popup.id = 'stock-popup';
@@ -766,9 +770,13 @@ const displayStockData = (stockName) => {
 // Function to close data popup
 const closePopup = () => {
   const popup = document.getElementById('stock-popup');
+  const overlay = document.getElementById('popup-overlay');
   // Enable page scrolling
   document.body.classList.remove('no-scroll');
   if (popup) popup.remove();
+  if (overlay) {
+    overlay.remove(); // Remove the overlay
+  }
 };
 
 // Render portfolio table
