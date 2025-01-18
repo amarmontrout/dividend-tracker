@@ -6,6 +6,7 @@ let apiKey = '';
 let fetchedDividendData = null; // Store fetched dividend data
 const toggleButton = document.getElementById('toggle-api-manual-btn');
 let isManualEntry = false; // Track the current mode (false = API, true = Manual)
+let dataFetchFailed = false;
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // MISC FUNCTIONS
@@ -603,8 +604,12 @@ form.addEventListener('submit', (e) => {
   // Saving dividend history for manually entered stocks
   const formattedDividnedTwoDecimal = parseFloat(dividendInput.value).toFixed(2);
   const dividendTwoDecimal = parseFloat(formattedDividnedTwoDecimal)
-  console.log(`-----The dividendInput is a $${typeof(dividendTwoDecimal)}`)
-  saveDividendHistoryData(stockName, [dividendTwoDecimal], 0, [stockPaymentDate]);
+
+  if (isManualEntry || dataFetchFailed) {
+    saveDividendHistoryData(stockName, [dividendTwoDecimal], 0, [stockPaymentDate]);
+  }
+  dataFetchFailed = false;
+  
   // Add the stock to the portfolio
   portfolio.push({
     stockName,
@@ -654,6 +659,7 @@ form.addEventListener('submit', (e) => {
   // Reset the form and the fetched data
   form.reset();
   fetchedDividendData = null;
+
   // Disable dividend input and payment date input if in API mode
   if (!isManualEntry) {
     dividendInput.disabled = true;
@@ -697,6 +703,7 @@ document.getElementById('stock-name').addEventListener('blur', async (e) => {
       dividendInput.placeholder = 'Enter Dividend:';
       paymentDateInput.disabled = false;
       paymentDateInput.placeholder = ' ';
+      dataFetchFailed = true;
       console.log('Manual entry mode is enabled.');
     }
   }
