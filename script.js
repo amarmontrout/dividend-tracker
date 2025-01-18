@@ -29,18 +29,38 @@ function getDataFromLocalStorage(key) {
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : {};
 }
-
 // Function to calculate annual dividend based on dividend per share
 function calcAnnualDivs(ticker) {
   const portfolio = getDataFromLocalStorage("portfolio");
   const portfolioAmounts = [];
   const overview = getDataFromLocalStorage("overviewData");
-  // Check if the ticker exists in the overview
-  if (!overview || !overview[ticker]) {
-    alert(`Ticker ${ticker} does not have overview data yet. Can't pull annual dividend per share figure.`);
-    return;
+  const history = getDataFromLocalStorage('dividendHistory');
+  const overviewDPS = overview[ticker].dividendPerShare;
+  let estimateDivPerShare;
+  let divPerShare;
+  let fourQuarterAmount = 0;
+  // Check if the ticker exists in the overview or is an empty object
+  if (!overview || overviewDPS == 0 || Object.keys(overview[ticker]).length === 0) {
+    const stock = history[ticker];
+    if (!stock || !stock["Amount"]) {
+      alert(`No dividend history found for ${ticker}.`);
+      return;
+    }
+    const quarterAmounts = stock['Amount']
+    if (quarterAmounts.length < 4) {
+      alert(`Insufficient data to estimate the annual dividend for ${ticker}.`);
+      return;
+    }
+    // Gets last 4 dividends to calculate estimated annual dividend per share
+    for (let i = 0; i < 4; i++) {
+      fourQuarterAmount = fourQuarterAmount + quarterAmounts[i];
+    }
+    estimateDivPerShare = fourQuarterAmount.toFixed(4);
+    divPerShare = estimateDivPerShare; // Assign the fallback estimate
+  } else {
+    divPerShare = overviewDPS;
   }
-  const divPerShare = overview[ticker].dividendPerShare;
+  // Gets the amount owned for all portfolio stocks  
   for (const stock of portfolio) {
     const symbol = stock.stockName;
     const amtOwned = stock.stockAmount;
@@ -113,12 +133,23 @@ function createDividendMap() {
   return null;
 }
 
+const totalDividendPayment = () => {
+  totalDividends = 0;
+  const annualDividends = getDataFromLocalStorage('annualDividends');
+  Object.values(annualDividends).forEach(value => {
+    let tickerAnnualDividend = parseFloat(value.annualDividend);
+    totalDividends += tickerAnnualDividend;
+  });
+
+  totalPaymentElement.textContent = totalDividends.toFixed(2);
+  console.log(`Total Dividends: $${totalDividends.toFixed(2)}`);
+};
+
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // SAVE, LOAD, AND CLEAR ALL DATA BUTTONS
 
 document.addEventListener('click', (event) => {
   const elementId = event.target.id;
-
   if (elementId === 'save-all-data-btn') {
     // Save all local storage data as a single JSON file
     const allData = {};
@@ -150,53 +181,44 @@ document.addEventListener('click', (event) => {
     // Load all data from a JSON file and restore to localStorage
     const fileInput = document.getElementById('file-input');
     fileInput.click();
-
     fileInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file && file.type === 'application/json') {
         const reader = new FileReader();
-
         reader.onload = (e) => {
           try {
             const loadedData = JSON.parse(e.target.result);
-            for (const key in loadedData) {
-              if (loadedData.hasOwnProperty(key)) {
-                localStorage.setItem(key, JSON.stringify(loadedData[key]));
-              }
-            }
-
+            // Loop through the keys of the object directly
+            Object.keys(loadedData).forEach(key => {
+              
+              const value = loadedData[key];
+              console.log(`Storing ${key}:`, value); // Debug log
+              
+              localStorage.setItem(key, JSON.stringify(loadedData[key]));
+            });
             console.log('All local storage data successfully loaded from all-data.json.');
-
             if (loadedData.portfolio) {
               portfolio = loadedData.portfolio;
-              totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * parseFloat(stock.stockDividend), 0);
               renderPortfolio();
             }
-
             alert('All local storage data has been restored.');
-
           } catch (error) {
             console.error('Failed to load data from file:', error);
             alert('Invalid JSON file.');
           }
         };
-
         reader.readAsText(file);
-
       } else {
         alert('Please select a valid JSON file.');
       }
     });
-
   } else if (elementId === 'clear-all-data-btn') {
     // Clear all localStorage data
     const confirmation = confirm('Are you sure you want to clear all local storage data? This action cannot be undone.');
-
     if (confirmation) {
       localStorage.clear();
       console.log('All local storage data has been cleared.');
       alert('All local storage data has been cleared.');
-
       portfolio = [];
       totalDividends = 0;
       renderPortfolio();
@@ -547,6 +569,9 @@ form.addEventListener('submit', (e) => {
   stockAmount = stockAmount.toFixed(4);
   const stockDividend = parseFloat(dividendInput.value).toFixed(4);
   const stockPaymentDate = paymentDateInput.value || 'N/A';
+  // Saving dividend history for manually entered stocks
+  const dividendTwoDecimal = parseFloat(dividendInput.value).toFixed(2)
+  saveDividendHistoryData(stockName, [dividendTwoDecimal], 0, [stockPaymentDate]);
   // Add the stock to the portfolio
   portfolio.push({
     stockName,
@@ -590,11 +615,7 @@ form.addEventListener('submit', (e) => {
   // Save the sorted 'data' object to localStorage
   localStorage.setItem('data', JSON.stringify(sortedData));
   console.log(`FormSubmission: Latest and previous dividend data for ${stockName} saved to localStorage`);
-  // Recalculate total dividends
-  totalDividends = portfolio.reduce(
-    (total, stock) => total + stock.stockAmount * stock.stockDividend,
-    0
-  );
+
   // Re-render the portfolio table
   renderPortfolio();
   // Reset the form and the fetched data
@@ -607,6 +628,8 @@ form.addEventListener('submit', (e) => {
     paymentDateInput.disabled = true;
     paymentDateInput.placeholder = ' ';
   };
+  // Calculate dividendMap after stock is added
+  createDividendMap();
 });
 
 // Event listener to fetch dividend when stock ticker is entered
@@ -731,12 +754,12 @@ const renderPortfolio = () => {
     // Add a click event listener to the stock name cell
     row.querySelector('.stock-name-cell').addEventListener('click', () => displayStockData(stock.stockName));
   });
-  totalPaymentElement.textContent = totalDividends.toFixed(2);
   saveTotalDividends(totalDividends.toFixed(2));
   // Save portfolio to localStorage
   localStorage.setItem('portfolio', JSON.stringify(portfolio));
   // Highlight row with payment date two months ago
   highlightOldStock();
+  totalDividendPayment();
   console.log('RenderPortfolio(): Table Rendered'); // Console Log Action
 };
 
@@ -781,10 +804,8 @@ window.updateStock = (index, field, value) => {
   }
   const stock = portfolio[index];
   if (field === 'amount') {
-    totalDividends -= stock.stockAmount * stock.stockDividend;  // Remove old value
     stock.stockAmount = value;
   } else if (field === 'dividend') {
-    totalDividends -= stock.stockAmount * stock.stockDividend;  // Remove old value
     stock.stockDividend = value;
 
     // Update the 'data' object in localStorage only if dividend is updated
@@ -797,18 +818,18 @@ window.updateStock = (index, field, value) => {
       console.error(`Ticker ${stock.stockName} not found in 'data' object.`);
     }
   }
-  // Recalculate the full dividend for the stock
-  totalDividends += stock.stockAmount * stock.stockDividend;
-  console.log("UpdateStock(): Stock value manually updated.");
+
+  console.log(`UpdateStock(): ${stock.stockName} value manually updated.`);
   renderPortfolio();
-  createDividendMap();
   calcAnnualDivs(stock.stockName);
+  totalDividendPayment();
+  saveTotalDividends(totalDividends.toFixed(2));
+  createDividendMap();
 };
 
 // Remove stock from portfolio, dividendHistory, and data objects
 window.removeStock = (index) => {
   const stock = portfolio.splice(index, 1)[0];
-  totalDividends -= stock.stockAmount * stock.stockDividend;
   const keys = ['data', 'dividendHistory', 'overviewData', 'annualDividends']
   for (const key of keys) {
     // Remove the corresponding entry from the localStorage object
@@ -857,11 +878,7 @@ window.refetchDividend = async (index) => {
     }
     // Calculate annual dividends for stock
     calcAnnualDivs(ticker);
-    // Recalculate total dividends
-    totalDividends = portfolio.reduce(
-      (total, stock) => total + stock.stockAmount * stock.stockDividend,
-      0
-    );
+
     // Re-render the portfolio and sort divMap only if changes occurred
     if (hasChanges) {
       console.error("RefetchDividend(): There has been a change. Running createDividendMap and renderPortfolio")
@@ -894,7 +911,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedPortfolio = localStorage.getItem('portfolio');
   if (savedPortfolio) {
     portfolio = JSON.parse(savedPortfolio);
-    totalDividends = portfolio.reduce((total, stock) => total + stock.stockAmount * stock.stockDividend, 0);
     renderPortfolio();
   }
 });

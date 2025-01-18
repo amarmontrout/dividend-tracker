@@ -135,13 +135,13 @@ function calculateDividendsMap(currentMonth, currentYear) {
   const portfolio = getDataFromLocalStorage("portfolio"); // Retrieve the portfolio object
   // Ensure divMap exists and is valid
   if (!divMap) {
-    console.warn("divMap is not available in local storage.");
     return dividendsMap;
   }
   // Iterate over divMap keys (payment dates)
   for (const paymentDateStr in divMap) {
     const [year, month, day] = paymentDateStr.split("-");
     const paymentDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0);
+    
     // Only process payments for the specified month and year
     if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
       const paymentDay = paymentDate.getDate(); // Day of the month (1-31)
